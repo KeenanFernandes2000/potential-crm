@@ -83,7 +83,7 @@ const Sidebar = ({ isOpen, closeSidebar }: SidebarProps) => {
   return (
     <aside 
       className={cn(
-        "sidebar fixed left-0 top-12 bottom-0 w-64 bg-primary-900 text-white overflow-y-auto z-30 transition-transform",
+        "sidebar fixed left-0 top-12 bottom-0 w-64 bg-gray-800 text-white overflow-y-auto z-30 transition-transform shadow-lg",
         isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
       )}
     >
@@ -91,17 +91,17 @@ const Sidebar = ({ isOpen, closeSidebar }: SidebarProps) => {
         <nav>
           <ul>
             {sidebarItems.map((item) => (
-              <li key={item.path}>
+              <li key={item.path} className="mb-1">
                 <Link href={item.path}>
                   <a 
                     className={cn(
-                      "sidebar-item flex items-center px-4 py-3 hover:bg-white/10",
-                      location === item.path && "active bg-white/10 border-l-3 border-secondary-500"
+                      "sidebar-item flex items-center px-4 py-3 text-white hover:bg-gray-700 rounded-md mx-2",
+                      location === item.path && "active bg-secondary font-medium"
                     )}
                     onClick={() => closeSidebar()}
                   >
                     {item.icon}
-                    {item.name}
+                    <span className="font-medium">{item.name}</span>
                   </a>
                 </Link>
               </li>
