@@ -1,0 +1,217 @@
+import { pgTable, text, serial, integer, boolean, timestamp, json, pgEnum } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod";
+
+// Enum definitions
+export const leadTypeEnum = pgEnum('lead_type', ['Customer', 'Partner', 'Vendor', 'Investor']);
+export const leadStatusEnum = pgEnum('lead_status', ['New', 'Contacted', 'Qualified', 'Proposal', 'Negotiation', 'Converted', 'Lost']);
+export const importanceEnum = pgEnum('importance', ['High', 'Medium', 'Low']);
+export const dealStageEnum = pgEnum('deal_stage', ['Inquiry', 'Qualified', 'Proposal', 'Negotiation', 'Won', 'Lost']);
+
+// Users table
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  username: text("username").notNull().unique(),
+  password: text("password").notNull(),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  email: text("email"),
+  role: text("role").default("user"),
+});
+
+// Contacts table
+export const contacts = pgTable("contacts", {
+  id: serial("id").primaryKey(),
+  firstName: text("first_name").notNull(),
+  lastName: text("last_name").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone"),
+  country: text("country"),
+  jobTitle: text("job_title"),
+  companyId: integer("company_id").references(() => companies.id),
+  webinarsAttended: text("webinars_attended").array(),
+  tags: text("tags").array(),
+  leadType: text("lead_type"),
+  leadStatus: text("lead_status").default("New"),
+  importance: text("importance").default("Medium"),
+  source: text("source"),
+  sourceDetails: json("source_details"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Companies table
+export const companies = pgTable("companies", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  website: text("website"),
+  industry: text("industry"),
+  size: text("size"),
+  country: text("country"),
+  notes: text("notes"),
+  tags: text("tags").array(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Deals table
+export const deals = pgTable("deals", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  value: integer("value"),
+  currency: text("currency").default("USD"),
+  contactId: integer("contact_id").references(() => contacts.id),
+  companyId: integer("company_id").references(() => companies.id),
+  stage: text("stage").default("Inquiry"),
+  subscriptionType: text("subscription_type"),
+  startDate: timestamp("start_date"),
+  expiryDate: timestamp("expiry_date"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Lists table
+export const lists = pgTable("lists", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  isDynamic: boolean("is_dynamic").default(false),
+  criteria: json("criteria"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// List Contacts (junction table)
+export const listContacts = pgTable("list_contacts", {
+  id: serial("id").primaryKey(),
+  listId: integer("list_id").references(() => lists.id).notNull(),
+  contactId: integer("contact_id").references(() => contacts.id).notNull(),
+});
+
+// Tasks table
+export const tasks = pgTable("tasks", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description"),
+  dueDate: timestamp("due_date"),
+  completed: boolean("completed").default(false),
+  priority: text("priority").default("Medium"),
+  assignedTo: integer("assigned_to").references(() => users.id),
+  contactId: integer("contact_id").references(() => contacts.id),
+  companyId: integer("company_id").references(() => companies.id),
+  dealId: integer("deal_id").references(() => deals.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Activities table
+export const activities = pgTable("activities", {
+  id: serial("id").primaryKey(),
+  type: text("type").notNull(), // email, call, meeting, note, etc.
+  title: text("title").notNull(),
+  description: text("description"),
+  contactId: integer("contact_id").references(() => contacts.id),
+  companyId: integer("company_id").references(() => companies.id),
+  dealId: integer("deal_id").references(() => deals.id),
+  userId: integer("user_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Forms table
+export const forms = pgTable("forms", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  fields: json("fields").notNull(),
+  listId: integer("list_id").references(() => lists.id),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Form Submissions table
+export const formSubmissions = pgTable("form_submissions", {
+  id: serial("id").primaryKey(),
+  formId: integer("form_id").references(() => forms.id).notNull(),
+  data: json("data").notNull(),
+  sourceInfo: json("source_info"),
+  contactId: integer("contact_id").references(() => contacts.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+// Schema validations
+export const insertUserSchema = createInsertSchema(users).pick({
+  username: true,
+  password: true,
+  firstName: true,
+  lastName: true,
+  email: true,
+  role: true,
+});
+
+export const insertContactSchema = createInsertSchema(contacts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertCompanySchema = createInsertSchema(companies).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertDealSchema = createInsertSchema(deals).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertListSchema = createInsertSchema(lists).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertTaskSchema = createInsertSchema(tasks).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertActivitySchema = createInsertSchema(activities).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const insertFormSchema = createInsertSchema(forms).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Types for application
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type User = typeof users.$inferSelect;
+
+export type InsertContact = z.infer<typeof insertContactSchema>;
+export type Contact = typeof contacts.$inferSelect;
+
+export type InsertCompany = z.infer<typeof insertCompanySchema>;
+export type Company = typeof companies.$inferSelect;
+
+export type InsertDeal = z.infer<typeof insertDealSchema>;
+export type Deal = typeof deals.$inferSelect;
+
+export type InsertList = z.infer<typeof insertListSchema>;
+export type List = typeof lists.$inferSelect;
+
+export type InsertTask = z.infer<typeof insertTaskSchema>;
+export type Task = typeof tasks.$inferSelect;
+
+export type InsertActivity = z.infer<typeof insertActivitySchema>;
+export type Activity = typeof activities.$inferSelect;
+
+export type InsertForm = z.infer<typeof insertFormSchema>;
+export type Form = typeof forms.$inferSelect;
