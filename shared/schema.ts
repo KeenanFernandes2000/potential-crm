@@ -7,6 +7,9 @@ export const leadTypeEnum = pgEnum('lead_type', ['Customer', 'Partner', 'Vendor'
 export const leadStatusEnum = pgEnum('lead_status', ['New', 'Contacted', 'Qualified', 'Proposal', 'Negotiation', 'Converted', 'Lost']);
 export const importanceEnum = pgEnum('importance', ['High', 'Medium', 'Low']);
 export const dealStageEnum = pgEnum('deal_stage', ['Inquiry', 'Qualified', 'Proposal', 'Negotiation', 'Won', 'Lost']);
+export const platformEnum = pgEnum('platform', ['Twitter', 'Facebook', 'Instagram', 'LinkedIn', 'YouTube', 'TikTok']);
+export const postStatusEnum = pgEnum('post_status', ['Draft', 'Scheduled', 'Published', 'Failed']);
+export const campaignStatusEnum = pgEnum('campaign_status', ['Active', 'Paused', 'Completed', 'Planned']);
 
 // Users table
 export const users = pgTable("users", {
@@ -140,6 +143,52 @@ export const formSubmissions = pgTable("form_submissions", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// Social Media tables
+export const socialAccounts = pgTable("social_accounts", {
+  id: serial("id").primaryKey(),
+  platform: platformEnum("platform").notNull(),
+  accountName: text("account_name").notNull(),
+  accountUrl: text("account_url").notNull(),
+  accessToken: text("access_token"),
+  refreshToken: text("refresh_token"),
+  tokenExpiry: timestamp("token_expiry", { mode: 'date' }),
+  active: boolean("active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const socialPosts = pgTable("social_posts", {
+  id: serial("id").primaryKey(),
+  accountId: integer("account_id").references(() => socialAccounts.id).notNull(),
+  content: text("content").notNull(),
+  mediaUrls: text("media_urls").array(),
+  status: postStatusEnum("status").default("Draft"),
+  scheduledFor: timestamp("scheduled_for", { mode: 'date' }),
+  publishedAt: timestamp("published_at", { mode: 'date' }),
+  engagementStats: json("engagement_stats"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const socialCampaigns = pgTable("social_campaigns", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  status: campaignStatusEnum("status").default("Planned"),
+  startDate: timestamp("start_date", { mode: 'date' }),
+  endDate: timestamp("end_date", { mode: 'date' }),
+  targetAudience: json("target_audience"),
+  budget: integer("budget"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const campaignPosts = pgTable("campaign_posts", {
+  id: serial("id").primaryKey(),
+  campaignId: integer("campaign_id").references(() => socialCampaigns.id).notNull(),
+  postId: integer("post_id").references(() => socialPosts.id).notNull(),
+});
+
 // Schema validations
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -191,6 +240,26 @@ export const insertFormSchema = createInsertSchema(forms).omit({
   updatedAt: true,
 });
 
+export const insertSocialAccountSchema = createInsertSchema(socialAccounts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertSocialPostSchema = createInsertSchema(socialPosts).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  engagementStats: true,
+  publishedAt: true,
+});
+
+export const insertSocialCampaignSchema = createInsertSchema(socialCampaigns).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types for application
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -215,3 +284,12 @@ export type Activity = typeof activities.$inferSelect;
 
 export type InsertForm = z.infer<typeof insertFormSchema>;
 export type Form = typeof forms.$inferSelect;
+
+export type InsertSocialAccount = z.infer<typeof insertSocialAccountSchema>;
+export type SocialAccount = typeof socialAccounts.$inferSelect;
+
+export type InsertSocialPost = z.infer<typeof insertSocialPostSchema>;
+export type SocialPost = typeof socialPosts.$inferSelect;
+
+export type InsertSocialCampaign = z.infer<typeof insertSocialCampaignSchema>;
+export type SocialCampaign = typeof socialCampaigns.$inferSelect;

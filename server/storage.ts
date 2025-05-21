@@ -61,6 +61,27 @@ export interface IStorage {
   getForm(id: number): Promise<Form | undefined>;
   createForm(form: InsertForm): Promise<Form>;
 
+  // Social Media Accounts
+  getSocialAccounts(): Promise<SocialAccount[]>;
+  getSocialAccount(id: number): Promise<SocialAccount | undefined>;
+  createSocialAccount(account: InsertSocialAccount): Promise<SocialAccount>;
+  updateSocialAccount(id: number, account: InsertSocialAccount): Promise<SocialAccount | undefined>;
+  deleteSocialAccount(id: number): Promise<boolean>;
+
+  // Social Media Posts
+  getSocialPosts(): Promise<SocialPost[]>;
+  getSocialPost(id: number): Promise<SocialPost | undefined>;
+  createSocialPost(post: InsertSocialPost): Promise<SocialPost>;
+  updateSocialPost(id: number, post: InsertSocialPost): Promise<SocialPost | undefined>;
+  deleteSocialPost(id: number): Promise<boolean>;
+
+  // Social Media Campaigns
+  getSocialCampaigns(): Promise<SocialCampaign[]>;
+  getSocialCampaign(id: number): Promise<SocialCampaign | undefined>;
+  createSocialCampaign(campaign: InsertSocialCampaign): Promise<SocialCampaign>;
+  updateSocialCampaign(id: number, campaign: InsertSocialCampaign): Promise<SocialCampaign | undefined>;
+  deleteSocialCampaign(id: number): Promise<boolean>;
+
   // Dashboard
   getDashboardStats(): Promise<any>;
 }
