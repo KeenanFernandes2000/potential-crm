@@ -6,6 +6,9 @@ import { insertContactSchema, insertCompanySchema, insertDealSchema, insertTaskS
 import twitterRoutes from "./routes/twitter";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Register Twitter routes
+  app.use('/api/twitter', twitterRoutes);
+  
   // API Routes for CRM System
 
   // Users
