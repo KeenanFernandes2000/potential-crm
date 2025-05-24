@@ -103,13 +103,14 @@ const DealForm = ({ deal, onClose }: DealFormProps) => {
   });
 
   const onSubmit = (data: DealFormValues) => {
-    // Convert the date objects to ISO strings before sending to API
+    // Convert the date objects to strings in the format expected by the backend
     const formattedData = {
       ...data,
       startDate: data.startDate ? data.startDate.toISOString() : null,
       expiryDate: data.expiryDate ? data.expiryDate.toISOString() : null,
     };
-    createDealMutation.mutate(formattedData);
+    
+    createDealMutation.mutate(formattedData as any);
   };
 
   const dealStages = [

@@ -215,6 +215,9 @@ export const insertDealSchema = createInsertSchema(deals).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).extend({
+  startDate: z.string().nullable().optional(),
+  expiryDate: z.string().nullable().optional(),
 });
 
 export const insertListSchema = createInsertSchema(lists).omit({
