@@ -17,6 +17,8 @@ import { Badge } from "@/components/ui/badge";
 import DealForm from "./DealForm";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { format } from "date-fns";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 const Deals = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -34,6 +36,23 @@ const Deals = () => {
   const closeModal = () => {
     setIsCreateModalOpen(false);
     setEditingDeal(null);
+  };
+  
+  const handleDelete = async (dealId: number) => {
+    try {
+      await apiRequest("DELETE", `/api/deals/${dealId}`);
+      queryClient.invalidateQueries({ queryKey: ["/api/deals"] });
+      toast({
+        title: "Deal deleted",
+        description: "The deal has been deleted successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to delete the deal. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const formatCurrency = (value?: number, currency = "USD") => {
@@ -149,7 +168,10 @@ const Deals = () => {
               <DropdownMenuItem>Mark as won</DropdownMenuItem>
               <DropdownMenuItem>Mark as lost</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-red-600">
+              <DropdownMenuItem 
+                className="text-red-600"
+                onClick={() => handleDelete(deal.id)}
+              >
                 Delete
               </DropdownMenuItem>
             </DropdownMenuContent>
