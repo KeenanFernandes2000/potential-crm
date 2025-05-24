@@ -27,6 +27,10 @@ const Deals = () => {
   const { data: deals, isLoading } = useQuery<Deal[]>({
     queryKey: ["/api/deals"],
   });
+  
+  const { data: companies } = useQuery({
+    queryKey: ["/api/companies"],
+  });
 
   const handleEdit = (deal: Deal) => {
     setEditingDeal(deal);
@@ -114,8 +118,14 @@ const Deals = () => {
       accessorKey: "companyId",
       header: "Company",
       cell: ({ row }) => {
-        // In a real app, you would need to fetch company details or use data from a join
-        return `Company ${row.getValue("companyId")}`;
+        const companyId = row.getValue("companyId") as number;
+        
+        if (!companies || companies.length === 0) {
+          return `Company ${companyId}`;
+        }
+        
+        const company = companies.find(c => c.id === companyId);
+        return company ? company.name : `Company ${companyId}`;
       },
     },
     {
