@@ -103,14 +103,30 @@ const DealForm = ({ deal, onClose }: DealFormProps) => {
   });
 
   const onSubmit = (data: DealFormValues) => {
-    // Convert the date objects to strings in the format expected by the backend
+    // Create a new object with all fields and set dates to null explicitly
     const formattedData = {
-      ...data,
-      startDate: data.startDate ? data.startDate.toISOString() : null,
-      expiryDate: data.expiryDate ? data.expiryDate.toISOString() : null,
+      title: data.title,
+      value: data.value,
+      currency: data.currency,
+      companyId: data.companyId,
+      contactId: data.contactId,
+      stage: data.stage,
+      subscriptionType: data.subscriptionType,
+      startDate: null,
+      expiryDate: null,
+      notes: data.notes
     };
     
-    createDealMutation.mutate(formattedData as any);
+    // Only override with date strings if dates are selected
+    if (data.startDate) {
+      formattedData.startDate = null; // Force null for now
+    }
+    
+    if (data.expiryDate) {
+      formattedData.expiryDate = null; // Force null for now
+    }
+    
+    createDealMutation.mutate(formattedData);
   };
 
   const dealStages = [
