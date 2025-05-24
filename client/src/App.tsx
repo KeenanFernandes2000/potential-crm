@@ -11,6 +11,7 @@ import Deals from "@/pages/deals";
 import Lists from "@/pages/lists";
 import Forms from "@/pages/forms";
 import SocialMedia from "@/pages/social";
+import Reports from "@/pages/reports";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -23,6 +24,7 @@ function Router() {
       <Route path="/lists" component={Lists} />
       <Route path="/forms" component={Forms} />
       <Route path="/social" component={SocialMedia} />
+      <Route path="/reports" component={Reports} />
       <Route component={NotFound} />
     </Switch>
   );
