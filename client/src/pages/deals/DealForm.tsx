@@ -225,12 +225,14 @@ const DealForm = ({ deal, onClose }: DealFormProps) => {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {/* This would show actual company names in a real app */}
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <SelectItem key={i} value={(i + 1).toString()}>
-                          Company {i + 1}
+                      {companies?.map((company) => (
+                        <SelectItem key={company.id} value={company.id.toString()}>
+                          {company.name}
                         </SelectItem>
                       ))}
+                      {(!companies || companies.length === 0) && (
+                        <SelectItem value="none" disabled>No companies available</SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />

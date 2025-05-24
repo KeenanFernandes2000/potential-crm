@@ -115,9 +115,26 @@ export default function AccountsTab() {
         <Alert variant="destructive">
           <AlertCircle className="h-4 w-4" />
           <AlertTitle>Unable to connect to Twitter</AlertTitle>
-          <AlertDescription>
-            There was an error connecting to your Twitter account. Please verify your API credentials.
+          <AlertDescription className="space-y-2">
+            <p>There was an error connecting to your Twitter account. This could be due to:</p>
+            <ul className="list-disc pl-5">
+              <li>Expired or invalid API credentials</li>
+              <li>Recent Twitter API changes requiring updated credentials</li>
+              <li>Network connectivity issues</li>
+            </ul>
+            <p className="pt-2">
+              Please check your Twitter API credentials (API key, API secret, Access token, Access secret) in your environment variables.
+            </p>
           </AlertDescription>
+          <div className="mt-4">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => window.location.reload()}
+            >
+              Retry Connection
+            </Button>
+          </div>
         </Alert>
       )}
 
