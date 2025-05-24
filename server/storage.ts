@@ -457,4 +457,320 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+import { db } from "./db";
+import { eq, desc } from "drizzle-orm";
+
+export class DatabaseStorage implements IStorage {
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
+    return user;
+  }
+
+  async getUsers(): Promise<User[]> {
+    return await db.select().from(users);
+  }
+
+  async getContacts(): Promise<Contact[]> {
+    return await db.select().from(contacts);
+  }
+
+  async getContact(id: number): Promise<Contact | undefined> {
+    const [contact] = await db.select().from(contacts).where(eq(contacts.id, id));
+    return contact || undefined;
+  }
+
+  async createContact(contact: InsertContact): Promise<Contact> {
+    const [newContact] = await db
+      .insert(contacts)
+      .values(contact)
+      .returning();
+    return newContact;
+  }
+
+  async updateContact(id: number, contact: InsertContact): Promise<Contact | undefined> {
+    const [updatedContact] = await db
+      .update(contacts)
+      .set(contact)
+      .where(eq(contacts.id, id))
+      .returning();
+    return updatedContact || undefined;
+  }
+
+  async deleteContact(id: number): Promise<boolean> {
+    const result = await db
+      .delete(contacts)
+      .where(eq(contacts.id, id));
+    return true; // In Drizzle, delete doesn't return anything useful to check
+  }
+
+  async getCompanies(): Promise<Company[]> {
+    return await db.select().from(companies);
+  }
+
+  async getCompany(id: number): Promise<Company | undefined> {
+    const [company] = await db.select().from(companies).where(eq(companies.id, id));
+    return company || undefined;
+  }
+
+  async createCompany(company: InsertCompany): Promise<Company> {
+    const [newCompany] = await db
+      .insert(companies)
+      .values(company)
+      .returning();
+    return newCompany;
+  }
+
+  async updateCompany(id: number, company: InsertCompany): Promise<Company | undefined> {
+    const [updatedCompany] = await db
+      .update(companies)
+      .set(company)
+      .where(eq(companies.id, id))
+      .returning();
+    return updatedCompany || undefined;
+  }
+
+  async deleteCompany(id: number): Promise<boolean> {
+    const result = await db
+      .delete(companies)
+      .where(eq(companies.id, id));
+    return true;
+  }
+
+  async getDeals(): Promise<Deal[]> {
+    return await db.select().from(deals);
+  }
+
+  async getDeal(id: number): Promise<Deal | undefined> {
+    const [deal] = await db.select().from(deals).where(eq(deals.id, id));
+    return deal || undefined;
+  }
+
+  async createDeal(deal: InsertDeal): Promise<Deal> {
+    const [newDeal] = await db
+      .insert(deals)
+      .values(deal)
+      .returning();
+    return newDeal;
+  }
+
+  async updateDeal(id: number, deal: InsertDeal): Promise<Deal | undefined> {
+    const [updatedDeal] = await db
+      .update(deals)
+      .set(deal)
+      .where(eq(deals.id, id))
+      .returning();
+    return updatedDeal || undefined;
+  }
+
+  async deleteDeal(id: number): Promise<boolean> {
+    const result = await db
+      .delete(deals)
+      .where(eq(deals.id, id));
+    return true;
+  }
+
+  async getTasks(): Promise<Task[]> {
+    return await db.select().from(tasks);
+  }
+
+  async getTask(id: number): Promise<Task | undefined> {
+    const [task] = await db.select().from(tasks).where(eq(tasks.id, id));
+    return task || undefined;
+  }
+
+  async createTask(task: InsertTask): Promise<Task> {
+    const [newTask] = await db
+      .insert(tasks)
+      .values(task)
+      .returning();
+    return newTask;
+  }
+
+  async updateTask(id: number, data: Partial<InsertTask>): Promise<Task | undefined> {
+    const [updatedTask] = await db
+      .update(tasks)
+      .set(data)
+      .where(eq(tasks.id, id))
+      .returning();
+    return updatedTask || undefined;
+  }
+
+  async deleteTask(id: number): Promise<boolean> {
+    const result = await db
+      .delete(tasks)
+      .where(eq(tasks.id, id));
+    return true;
+  }
+
+  async getActivities(): Promise<Activity[]> {
+    return await db.select().from(activities).orderBy(desc(activities.createdAt));
+  }
+
+  async createActivity(activity: InsertActivity): Promise<Activity> {
+    const [newActivity] = await db
+      .insert(activities)
+      .values(activity)
+      .returning();
+    return newActivity;
+  }
+
+  async getLists(): Promise<List[]> {
+    return await db.select().from(lists);
+  }
+
+  async getList(id: number): Promise<List | undefined> {
+    const [list] = await db.select().from(lists).where(eq(lists.id, id));
+    return list || undefined;
+  }
+
+  async createList(list: InsertList): Promise<List> {
+    const [newList] = await db
+      .insert(lists)
+      .values(list)
+      .returning();
+    return newList;
+  }
+
+  async getForms(): Promise<Form[]> {
+    return await db.select().from(forms);
+  }
+
+  async getForm(id: number): Promise<Form | undefined> {
+    const [form] = await db.select().from(forms).where(eq(forms.id, id));
+    return form || undefined;
+  }
+
+  async createForm(form: InsertForm): Promise<Form> {
+    const [newForm] = await db
+      .insert(forms)
+      .values(form)
+      .returning();
+    return newForm;
+  }
+
+  async getSocialAccounts(): Promise<SocialAccount[]> {
+    return await db.select().from(socialAccounts);
+  }
+
+  async getSocialAccount(id: number): Promise<SocialAccount | undefined> {
+    const [account] = await db.select().from(socialAccounts).where(eq(socialAccounts.id, id));
+    return account || undefined;
+  }
+
+  async createSocialAccount(account: InsertSocialAccount): Promise<SocialAccount> {
+    const [newAccount] = await db
+      .insert(socialAccounts)
+      .values(account)
+      .returning();
+    return newAccount;
+  }
+
+  async updateSocialAccount(id: number, account: InsertSocialAccount): Promise<SocialAccount | undefined> {
+    const [updatedAccount] = await db
+      .update(socialAccounts)
+      .set(account)
+      .where(eq(socialAccounts.id, id))
+      .returning();
+    return updatedAccount || undefined;
+  }
+
+  async deleteSocialAccount(id: number): Promise<boolean> {
+    const result = await db
+      .delete(socialAccounts)
+      .where(eq(socialAccounts.id, id));
+    return true;
+  }
+
+  async getSocialPosts(): Promise<SocialPost[]> {
+    return await db.select().from(socialPosts);
+  }
+
+  async getSocialPost(id: number): Promise<SocialPost | undefined> {
+    const [post] = await db.select().from(socialPosts).where(eq(socialPosts.id, id));
+    return post || undefined;
+  }
+
+  async createSocialPost(post: InsertSocialPost): Promise<SocialPost> {
+    const [newPost] = await db
+      .insert(socialPosts)
+      .values(post)
+      .returning();
+    return newPost;
+  }
+
+  async updateSocialPost(id: number, post: InsertSocialPost): Promise<SocialPost | undefined> {
+    const [updatedPost] = await db
+      .update(socialPosts)
+      .set(post)
+      .where(eq(socialPosts.id, id))
+      .returning();
+    return updatedPost || undefined;
+  }
+
+  async deleteSocialPost(id: number): Promise<boolean> {
+    const result = await db
+      .delete(socialPosts)
+      .where(eq(socialPosts.id, id));
+    return true;
+  }
+
+  async getSocialCampaigns(): Promise<SocialCampaign[]> {
+    return await db.select().from(socialCampaigns);
+  }
+
+  async getSocialCampaign(id: number): Promise<SocialCampaign | undefined> {
+    const [campaign] = await db.select().from(socialCampaigns).where(eq(socialCampaigns.id, id));
+    return campaign || undefined;
+  }
+
+  async createSocialCampaign(campaign: InsertSocialCampaign): Promise<SocialCampaign> {
+    const [newCampaign] = await db
+      .insert(socialCampaigns)
+      .values(campaign)
+      .returning();
+    return newCampaign;
+  }
+
+  async updateSocialCampaign(id: number, campaign: InsertSocialCampaign): Promise<SocialCampaign | undefined> {
+    const [updatedCampaign] = await db
+      .update(socialCampaigns)
+      .set(campaign)
+      .where(eq(socialCampaigns.id, id))
+      .returning();
+    return updatedCampaign || undefined;
+  }
+
+  async deleteSocialCampaign(id: number): Promise<boolean> {
+    const result = await db
+      .delete(socialCampaigns)
+      .where(eq(socialCampaigns.id, id));
+    return true;
+  }
+
+  async getDashboardStats(): Promise<any> {
+    // This would ideally use more complex queries to aggregate data
+    // For now, we'll return mock data similar to what we had in MemStorage
+    return {
+      totalLeads: 1482,
+      openDeals: 64,
+      revenue: "$89,421",
+      conversionRate: "24.8%"
+    };
+  }
+}
+
+// Use the database storage implementation
+export const storage = new DatabaseStorage();
