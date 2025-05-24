@@ -38,6 +38,8 @@ const Deals = () => {
     setEditingDeal(null);
   };
   
+  const { toast } = useToast();
+
   const handleDelete = async (dealId: number) => {
     try {
       await apiRequest("DELETE", `/api/deals/${dealId}`);
