@@ -183,7 +183,7 @@ const Deals = () => {
       )}
 
       <Dialog open={isCreateModalOpen} onOpenChange={closeModal}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DealForm 
             deal={editingDeal} 
             onClose={closeModal} 
