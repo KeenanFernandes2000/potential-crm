@@ -273,7 +273,7 @@ const QuotationForm = ({ onClose, existingQuotation }: QuotationFormProps) => {
                   <SelectContent>
                     {contacts?.map((contact) => (
                       <SelectItem key={contact.id} value={contact.id.toString()}>
-                        {contact.firstName} {contact.lastName}
+                        {contact.firstName} {contact.lastName} {contact.leadType ? `(${contact.leadType})` : ""} - {contact.email}
                       </SelectItem>
                     ))}
                   </SelectContent>

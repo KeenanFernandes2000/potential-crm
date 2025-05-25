@@ -123,7 +123,10 @@ const Quotations = () => {
   const getContactName = (contactId: number) => {
     if (!contacts) return `Contact ${contactId}`;
     const contact = contacts.find(c => c.id === contactId);
-    return contact ? `${contact.firstName} ${contact.lastName}` : `Contact ${contactId}`;
+    if (!contact) return `Contact ${contactId}`;
+    
+    const leadType = contact.leadType ? ` (${contact.leadType})` : "";
+    return `${contact.firstName} ${contact.lastName}${leadType}`;
   };
 
   const getCompanyName = (companyId: number | null) => {
