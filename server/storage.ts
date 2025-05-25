@@ -1,5 +1,6 @@
 import { 
   users, contacts, companies, deals, tasks, activities, lists, forms, formSubmissions, listContacts,
+  quotations, quotationTemplates, socialAccounts, socialPosts, socialCampaigns,
   type User, type InsertUser, 
   type Contact, type InsertContact,
   type Company, type InsertCompany,
@@ -7,7 +8,12 @@ import {
   type Task, type InsertTask,
   type Activity, type InsertActivity,
   type List, type InsertList,
-  type Form, type InsertForm
+  type Form, type InsertForm,
+  type Quotation, type InsertQuotation,
+  type QuotationTemplate, type InsertQuotationTemplate,
+  type SocialAccount, type InsertSocialAccount,
+  type SocialPost, type InsertSocialPost,
+  type SocialCampaign, type InsertSocialCampaign
 } from "@shared/schema";
 
 // modify the interface with any CRUD methods
@@ -134,6 +140,8 @@ export class MemStorage implements IStorage {
     this.activitiesMap = new Map();
     this.listsMap = new Map();
     this.formsMap = new Map();
+    this.quotationsMap = new Map();
+    this.quotationTemplatesMap = new Map();
     
     this.userIdCounter = 1;
     this.contactIdCounter = 1;
@@ -143,6 +151,8 @@ export class MemStorage implements IStorage {
     this.activityIdCounter = 1;
     this.listIdCounter = 1;
     this.formIdCounter = 1;
+    this.quotationIdCounter = 1;
+    this.quotationTemplateIdCounter = 1;
     
     // Seed some initial data
     this.seedData();
@@ -456,6 +466,125 @@ export class MemStorage implements IStorage {
     };
     this.formsMap.set(id, newForm);
     return newForm;
+  }
+
+  // Quotations
+  async getQuotations(): Promise<Quotation[]> {
+    return Array.from(this.quotationsMap.values());
+  }
+
+  async getQuotation(id: number): Promise<Quotation | undefined> {
+    return this.quotationsMap.get(id);
+  }
+
+  async getQuotationsByDeal(dealId: number): Promise<Quotation[]> {
+    return Array.from(this.quotationsMap.values()).filter(q => q.dealId === dealId);
+  }
+
+  async createQuotation(quotation: InsertQuotation): Promise<Quotation> {
+    const id = this.quotationIdCounter++;
+    const now = new Date();
+    const validUntil = quotation.validUntil ? new Date(quotation.validUntil) : null;
+    
+    const newQuotation: Quotation = {
+      ...quotation,
+      id,
+      validUntil,
+      emailSent: false,
+      emailSentAt: null,
+      createdAt: now,
+      updatedAt: now
+    };
+    
+    this.quotationsMap.set(id, newQuotation);
+    return newQuotation;
+  }
+
+  async updateQuotation(id: number, quotation: InsertQuotation): Promise<Quotation | undefined> {
+    const existingQuotation = this.quotationsMap.get(id);
+    if (!existingQuotation) {
+      return undefined;
+    }
+    
+    const now = new Date();
+    const validUntil = quotation.validUntil ? new Date(quotation.validUntil) : existingQuotation.validUntil;
+    
+    const updatedQuotation: Quotation = {
+      ...existingQuotation,
+      ...quotation,
+      validUntil,
+      updatedAt: now
+    };
+    
+    this.quotationsMap.set(id, updatedQuotation);
+    return updatedQuotation;
+  }
+
+  async deleteQuotation(id: number): Promise<boolean> {
+    return this.quotationsMap.delete(id);
+  }
+
+  async markQuotationAsEmailSent(id: number): Promise<Quotation | undefined> {
+    const quotation = this.quotationsMap.get(id);
+    if (!quotation) {
+      return undefined;
+    }
+    
+    const now = new Date();
+    const updatedQuotation: Quotation = {
+      ...quotation,
+      emailSent: true,
+      emailSentAt: now,
+      updatedAt: now
+    };
+    
+    this.quotationsMap.set(id, updatedQuotation);
+    return updatedQuotation;
+  }
+  
+  // Quotation Templates
+  async getQuotationTemplates(): Promise<QuotationTemplate[]> {
+    return Array.from(this.quotationTemplatesMap.values());
+  }
+
+  async getQuotationTemplate(id: number): Promise<QuotationTemplate | undefined> {
+    return this.quotationTemplatesMap.get(id);
+  }
+
+  async createQuotationTemplate(template: InsertQuotationTemplate): Promise<QuotationTemplate> {
+    const id = this.quotationTemplateIdCounter++;
+    const now = new Date();
+    
+    const newTemplate: QuotationTemplate = {
+      ...template,
+      id,
+      createdAt: now,
+      updatedAt: now
+    };
+    
+    this.quotationTemplatesMap.set(id, newTemplate);
+    return newTemplate;
+  }
+
+  async updateQuotationTemplate(id: number, template: InsertQuotationTemplate): Promise<QuotationTemplate | undefined> {
+    const existingTemplate = this.quotationTemplatesMap.get(id);
+    if (!existingTemplate) {
+      return undefined;
+    }
+    
+    const now = new Date();
+    const updatedTemplate: QuotationTemplate = {
+      ...existingTemplate,
+      ...template,
+      updatedAt: now
+    };
+    
+    this.quotationTemplatesMap.set(id, updatedTemplate);
+    return updatedTemplate;
+  }
+
+  async deleteQuotationTemplate(id: number): Promise<boolean> {
+    return this.quotationTemplatesMap.delete(id);
   }
 
   // Dashboard

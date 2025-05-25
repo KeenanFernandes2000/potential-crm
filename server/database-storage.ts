@@ -1,6 +1,6 @@
 import { 
   users, contacts, companies, deals, tasks, activities, lists, forms, formSubmissions, listContacts,
-  socialAccounts, socialPosts, socialCampaigns, campaignPosts,
+  socialAccounts, socialPosts, socialCampaigns, campaignPosts, quotations, quotationTemplates,
   type User, type InsertUser, 
   type Contact, type InsertContact,
   type Company, type InsertCompany,
@@ -9,6 +9,8 @@ import {
   type Activity, type InsertActivity,
   type List, type InsertList,
   type Form, type InsertForm,
+  type Quotation, type InsertQuotation,
+  type QuotationTemplate, type InsertQuotationTemplate,
   type SocialAccount, type InsertSocialAccount,
   type SocialPost, type InsertSocialPost,
   type SocialCampaign, type InsertSocialCampaign
@@ -18,6 +20,75 @@ import { eq, desc, and } from "drizzle-orm";
 import { IStorage } from "./storage";
 
 export class DatabaseStorage implements IStorage {
+  // Quotations
+  async getQuotations(): Promise<Quotation[]> {
+    const result = await db.select().from(quotations);
+    return result;
+  }
+
+  async getQuotation(id: number): Promise<Quotation | undefined> {
+    const result = await db.select().from(quotations).where(eq(quotations.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getQuotationsByDeal(dealId: number): Promise<Quotation[]> {
+    const result = await db.select().from(quotations).where(eq(quotations.dealId, dealId));
+    return result;
+  }
+
+  async createQuotation(quotation: InsertQuotation): Promise<Quotation> {
+    const result = await db.insert(quotations).values(quotation).returning();
+    return result[0];
+  }
+
+  async updateQuotation(id: number, quotation: InsertQuotation): Promise<Quotation | undefined> {
+    const result = await db.update(quotations).set(quotation).where(eq(quotations.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteQuotation(id: number): Promise<boolean> {
+    const result = await db.delete(quotations).where(eq(quotations.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async markQuotationAsEmailSent(id: number): Promise<Quotation | undefined> {
+    const now = new Date();
+    const result = await db.update(quotations)
+      .set({ 
+        emailSent: true, 
+        emailSentAt: now,
+        updatedAt: now
+      })
+      .where(eq(quotations.id, id))
+      .returning();
+    return result[0];
+  }
+  
+  // Quotation Templates
+  async getQuotationTemplates(): Promise<QuotationTemplate[]> {
+    const result = await db.select().from(quotationTemplates);
+    return result;
+  }
+
+  async getQuotationTemplate(id: number): Promise<QuotationTemplate | undefined> {
+    const result = await db.select().from(quotationTemplates).where(eq(quotationTemplates.id, id)).limit(1);
+    return result[0];
+  }
+
+  async createQuotationTemplate(template: InsertQuotationTemplate): Promise<QuotationTemplate> {
+    const result = await db.insert(quotationTemplates).values(template).returning();
+    return result[0];
+  }
+
+  async updateQuotationTemplate(id: number, template: InsertQuotationTemplate): Promise<QuotationTemplate | undefined> {
+    const result = await db.update(quotationTemplates).set(template).where(eq(quotationTemplates.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteQuotationTemplate(id: number): Promise<boolean> {
+    const result = await db.delete(quotationTemplates).where(eq(quotationTemplates.id, id)).returning();
+    return result.length > 0;
+  }
   // Users
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
