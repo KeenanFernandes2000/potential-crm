@@ -601,6 +601,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to delete form" });
     }
   });
+  
+  // Form Submissions
+  app.get("/api/form-submissions/counts", async (req, res) => {
+    try {
+      const forms = await storage.getForms();
+      const submissionCounts: Record<number, number> = {};
+      
+      // Get submission counts for each form
+      for (const form of forms) {
+        const submissions = await storage.getFormSubmissions(form.id);
+        submissionCounts[form.id] = submissions.length;
+      }
+      
+      res.json(submissionCounts);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get form submission counts" });
+    }
+  });
+  
+  app.get("/api/forms/:id/submissions", async (req, res) => {
+    try {
+      const formId = parseInt(req.params.id);
+      const submissions = await storage.getFormSubmissions(formId);
+      res.json(submissions);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get form submissions" });
+    }
+  });
+  
+  app.post("/api/forms/:id/submit", async (req, res) => {
+    try {
+      const formId = parseInt(req.params.id);
+      const form = await storage.getForm(formId);
+      
+      if (!form) {
+        return res.status(404).json({ message: "Form not found" });
+      }
+      
+      const submission = {
+        formId,
+        data: req.body,
+        sourceInfo: {
+          ip: req.ip,
+          userAgent: req.headers['user-agent'],
+          referrer: req.headers.referer || req.headers.referrer
+        },
+        contactId: null
+      };
+      
+      const result = await storage.createFormSubmission(submission);
+      res.status(201).json(result);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to submit form" });
+    }
+  });
 
   app.get("/api/lists/:id", async (req, res) => {
     try {

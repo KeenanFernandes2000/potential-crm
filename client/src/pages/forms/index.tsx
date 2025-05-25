@@ -47,6 +47,12 @@ const Forms = () => {
   const { data: forms, isLoading } = useQuery<Form[]>({
     queryKey: ["/api/forms"],
   });
+  
+  // Get submission counts for each form
+  const { data: submissionCounts } = useQuery<Record<number, number>>({
+    queryKey: ["/api/form-submissions/counts"],
+    enabled: !!forms && forms.length > 0,
+  });
 
   const deleteMutation = useMutation({
     mutationFn: (id: number) => {
@@ -151,8 +157,9 @@ const Forms = () => {
       accessorKey: "submissionCount",
       header: "Submissions",
       cell: ({ row }) => {
-        // In a real app, this would be the count of submissions
-        return Math.floor(Math.random() * 100);
+        const formId = row.original.id;
+        // Get the actual submission count from our API data
+        return submissionCounts?.[formId] || 0;
       },
     },
     {
@@ -183,7 +190,9 @@ const Forms = () => {
               <DropdownMenuItem onClick={() => handleEditForm(form)}>
                 Edit
               </DropdownMenuItem>
-              <DropdownMenuItem>View submissions</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => window.location.href = `/forms/${form.id}/submissions`}>
+                View submissions
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleCopyEmbedCode(form.id)}>
                 Copy embed code
               </DropdownMenuItem>
