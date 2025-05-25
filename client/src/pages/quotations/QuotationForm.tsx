@@ -102,6 +102,9 @@ const QuotationForm = ({ onClose, existingQuotation }: QuotationFormProps) => {
       items: [defaultItem],
     },
   });
+  
+  // Watch dealId to auto-populate company field
+  const watchDealId = form.watch("dealId");
 
   // Initialize form with existing quotation data if provided
   useEffect(() => {
@@ -122,6 +125,16 @@ const QuotationForm = ({ onClose, existingQuotation }: QuotationFormProps) => {
       calculateTotal(items);
     }
   }, [existingQuotation, form]);
+  
+  // Auto-populate company when deal is selected
+  useEffect(() => {
+    if (watchDealId && deals) {
+      const selectedDeal = deals.find(deal => deal.id === watchDealId);
+      if (selectedDeal && selectedDeal.companyId) {
+        form.setValue("companyId", selectedDeal.companyId);
+      }
+    }
+  }, [watchDealId, deals, form]);
 
   const calculateTotal = (items: LineItem[]) => {
     const total = items.reduce(
@@ -230,7 +243,18 @@ const QuotationForm = ({ onClose, existingQuotation }: QuotationFormProps) => {
               <FormItem>
                 <FormLabel>Related Deal</FormLabel>
                 <Select
-                  onValueChange={(value) => field.onChange(parseInt(value))}
+                  onValueChange={(value) => {
+                    const dealId = parseInt(value);
+                    field.onChange(dealId);
+                    
+                    // Auto-fill company when deal is selected
+                    if (dealId && deals) {
+                      const selectedDeal = deals.find(deal => deal.id === dealId);
+                      if (selectedDeal && selectedDeal.companyId) {
+                        form.setValue("companyId", selectedDeal.companyId);
+                      }
+                    }
+                  }}
                   defaultValue={
                     field.value ? field.value.toString() : undefined
                   }
