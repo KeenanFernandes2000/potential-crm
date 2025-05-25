@@ -535,6 +535,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to get lists" });
     }
   });
+  
+  // Forms
+  app.get("/api/forms", async (req, res) => {
+    try {
+      const forms = await storage.getForms();
+      res.json(forms);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get forms" });
+    }
+  });
+
+  app.get("/api/forms/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const form = await storage.getForm(id);
+      if (!form) {
+        return res.status(404).json({ message: "Form not found" });
+      }
+      res.json(form);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get form" });
+    }
+  });
+
+  app.post("/api/forms", async (req, res) => {
+    try {
+      const data = insertFormSchema.parse(req.body);
+      const form = await storage.createForm(data);
+      res.status(201).json(form);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid form data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create form" });
+    }
+  });
+
+  app.patch("/api/forms/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const data = insertFormSchema.parse(req.body);
+      const form = await storage.updateForm(id, data);
+      if (!form) {
+        return res.status(404).json({ message: "Form not found" });
+      }
+      res.json(form);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid form data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update form" });
+    }
+  });
+
+  app.delete("/api/forms/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteForm(id);
+      if (!success) {
+        return res.status(404).json({ message: "Form not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete form" });
+    }
+  });
 
   app.get("/api/lists/:id", async (req, res) => {
     try {
