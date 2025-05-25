@@ -1,6 +1,7 @@
 import { 
   users, contacts, companies, deals, tasks, activities, lists, forms, formSubmissions, listContacts,
   quotations, quotationTemplates, socialAccounts, socialPosts, socialCampaigns,
+  emailTemplates, emailCampaigns, emailCampaignRecipients,
   type User, type InsertUser, 
   type Contact, type InsertContact,
   type Company, type InsertCompany,
@@ -13,7 +14,10 @@ import {
   type QuotationTemplate, type InsertQuotationTemplate,
   type SocialAccount, type InsertSocialAccount,
   type SocialPost, type InsertSocialPost,
-  type SocialCampaign, type InsertSocialCampaign
+  type SocialCampaign, type InsertSocialCampaign,
+  type EmailTemplate, type InsertEmailTemplate,
+  type EmailCampaign, type InsertEmailCampaign,
+  type EmailCampaignRecipient, type InsertEmailCampaignRecipient
 } from "@shared/schema";
 
 // modify the interface with any CRUD methods
@@ -115,6 +119,30 @@ export interface IStorage {
 
   // Dashboard
   getDashboardStats(): Promise<any>;
+  
+  // Email Templates
+  getEmailTemplates(): Promise<EmailTemplate[]>;
+  getEmailTemplate(id: number): Promise<EmailTemplate | undefined>;
+  createEmailTemplate(template: InsertEmailTemplate): Promise<EmailTemplate>;
+  updateEmailTemplate(id: number, template: InsertEmailTemplate): Promise<EmailTemplate | undefined>;
+  deleteEmailTemplate(id: number): Promise<boolean>;
+  
+  // Email Campaigns
+  getEmailCampaigns(): Promise<EmailCampaign[]>;
+  getEmailCampaign(id: number): Promise<EmailCampaign | undefined>;
+  createEmailCampaign(campaign: InsertEmailCampaign): Promise<EmailCampaign>;
+  updateEmailCampaign(id: number, campaign: InsertEmailCampaign): Promise<EmailCampaign | undefined>;
+  deleteEmailCampaign(id: number): Promise<boolean>;
+  
+  // Email Campaign Recipients
+  getEmailCampaignRecipients(campaignId: number): Promise<EmailCampaignRecipient[]>;
+  addContactToEmailCampaign(campaignId: number, contactId: number): Promise<EmailCampaignRecipient>;
+  addContactListToEmailCampaign(campaignId: number, listId: number): Promise<EmailCampaignRecipient[]>;
+  
+  // Email Sending
+  sendEmailCampaign(campaignId: number): Promise<boolean>;
+  sendQuotationEmail(quotationId: number): Promise<boolean>;
+  sendEmailToList(listId: number, subject: string, body: string, fromName: string, fromEmail: string): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {

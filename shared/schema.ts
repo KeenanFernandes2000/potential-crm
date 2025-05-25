@@ -11,6 +11,7 @@ export const platformEnum = pgEnum('platform', ['Twitter', 'Facebook', 'Instagra
 export const postStatusEnum = pgEnum('post_status', ['Draft', 'Scheduled', 'Published', 'Failed']);
 export const campaignStatusEnum = pgEnum('campaign_status', ['Active', 'Paused', 'Completed', 'Planned']);
 export const quotationStatusEnum = pgEnum('quotation_status', ['Draft', 'Sent', 'Accepted', 'Rejected', 'Expired']);
+export const emailStatusEnum = pgEnum('email_status', ['Draft', 'Scheduled', 'Sent', 'Failed']);
 
 // Users table
 export const users = pgTable("users", {
@@ -222,6 +223,49 @@ export const quotationTemplates = pgTable("quotation_templates", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Email Templates
+export const emailTemplates = pgTable("email_templates", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  category: text("category").notNull(),
+  subject: text("subject").notNull(),
+  body: text("body").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Email Campaigns
+export const emailCampaigns = pgTable("email_campaigns", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  subject: text("subject").notNull(),
+  body: text("body").notNull(),
+  fromName: text("from_name").notNull(),
+  fromEmail: text("from_email").notNull(),
+  replyTo: text("reply_to"),
+  status: emailStatusEnum("status").default("Draft"),
+  scheduledFor: timestamp("scheduled_for"),
+  sentAt: timestamp("sent_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+  listId: integer("list_id").references(() => lists.id),
+  templateId: integer("template_id").references(() => emailTemplates.id),
+  stats: json("stats")  // For tracking opens, clicks, etc.
+});
+
+// Email Campaign Recipients 
+export const emailCampaignRecipients = pgTable("email_campaign_recipients", {
+  id: serial("id").primaryKey(),
+  campaignId: integer("campaign_id").references(() => emailCampaigns.id).notNull(),
+  contactId: integer("contact_id").references(() => contacts.id).notNull(),
+  status: emailStatusEnum("status").default("Draft"),
+  sentAt: timestamp("sent_at"),
+  openedAt: timestamp("opened_at"),
+  clickedAt: timestamp("clicked_at"),
+  error: text("error"), // For storing error messages if sending fails
+});
+
 // Schema validations
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -316,6 +360,27 @@ export const insertQuotationTemplateSchema = createInsertSchema(quotationTemplat
   updatedAt: true,
 });
 
+export const insertEmailTemplateSchema = createInsertSchema(emailTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertEmailCampaignSchema = createInsertSchema(emailCampaigns).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  sentAt: true,
+  stats: true,
+});
+
+export const insertEmailCampaignRecipientSchema = createInsertSchema(emailCampaignRecipients).omit({
+  id: true,
+  sentAt: true,
+  openedAt: true,
+  clickedAt: true,
+});
+
 // Types for application
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -355,3 +420,12 @@ export type Quotation = typeof quotations.$inferSelect;
 
 export type InsertQuotationTemplate = z.infer<typeof insertQuotationTemplateSchema>;
 export type QuotationTemplate = typeof quotationTemplates.$inferSelect;
+
+export type InsertEmailTemplate = z.infer<typeof insertEmailTemplateSchema>;
+export type EmailTemplate = typeof emailTemplates.$inferSelect;
+
+export type InsertEmailCampaign = z.infer<typeof insertEmailCampaignSchema>;
+export type EmailCampaign = typeof emailCampaigns.$inferSelect;
+
+export type InsertEmailCampaignRecipient = z.infer<typeof insertEmailCampaignRecipientSchema>;
+export type EmailCampaignRecipient = typeof emailCampaignRecipients.$inferSelect;
