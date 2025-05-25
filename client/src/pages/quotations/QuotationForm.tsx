@@ -42,8 +42,8 @@ const formSchema = insertQuotationSchema.extend({
   items: z.array(
     z.object({
       description: z.string().min(1, "Description is required"),
-      quantity: z.number().min(1, "Quantity must be at least 1"),
-      unitPrice: z.number().min(0.01, "Unit price must be greater than 0"),
+      quantity: z.coerce.number().min(1, "Quantity must be at least 1"),
+      unitPrice: z.coerce.number().min(0.01, "Unit price must be greater than 0"),
     })
   ).min(1, "At least one item is required"),
 });
@@ -181,6 +181,19 @@ const QuotationForm = ({ onClose, existingQuotation }: QuotationFormProps) => {
       const finalAmount = calculateTotal(values.items);
       values.amount = finalAmount;
 
+      // Ensure all required fields are present
+      if (!values.title || !values.dealId || !values.contactId) {
+        toast({
+          title: "Validation Error",
+          description: "Please fill in all required fields (Title, Deal, and Contact)",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Log what we're submitting to help debug
+      console.log("Submitting quotation with values:", values);
+      
       if (existingQuotation) {
         await apiRequest("PUT", `/api/quotations/${existingQuotation.id}`, values);
         toast({
