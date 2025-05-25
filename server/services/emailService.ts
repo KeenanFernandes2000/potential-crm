@@ -11,8 +11,13 @@ const mailService = new MailService();
 mailService.setApiKey(process.env.SENDGRID_API_KEY || '');
 
 // Basic email sending function with variable replacement
-async function sendEmail(to: string, from: string, subject: string, html: string, variables: Record<string, string> = {}): Promise<boolean> {
+export async function sendEmail(to: string, from: string, subject: string, html: string, variables: Record<string, string> = {}): Promise<boolean> {
   try {
+    console.log('Attempting to send email:');
+    console.log('- To:', to);
+    console.log('- From:', from);
+    console.log('- Subject:', subject);
+    
     // Replace all variables in the format {{variableName}} with their values
     let processedHtml = html;
     
@@ -21,16 +26,27 @@ async function sendEmail(to: string, from: string, subject: string, html: string
       processedHtml = processedHtml.replace(regex, value);
     });
     
-    await mailService.send({
+    console.log('- Variables replaced, sending email via SendGrid...');
+    
+    const msg = {
       to,
       from,
       subject,
       html: processedHtml,
-    });
+    };
+    
+    await mailService.send(msg);
+    console.log('Email sent successfully!');
     
     return true;
   } catch (error) {
     console.error('SendGrid email error:', error);
+    if (error.response) {
+      console.error('SendGrid API error details:');
+      console.error('- Status code:', error.response.statusCode);
+      console.error('- Body:', error.response.body);
+      console.error('- Headers:', error.response.headers);
+    }
     return false;
   }
 }

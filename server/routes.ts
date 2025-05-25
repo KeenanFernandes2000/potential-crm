@@ -841,6 +841,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Test endpoint for sending an email directly
+  app.post("/api/test-email", async (req, res) => {
+    try {
+      const { to, subject, body } = req.body;
+      
+      if (!to || !subject || !body) {
+        return res.status(400).json({ message: "Missing required email parameters" });
+      }
+      
+      console.log("Testing email sending to:", to);
+      
+      // Import the email service
+      const emailService = await import('./services/emailService');
+      
+      // Get the private sendEmail function using a workaround
+      const sendEmail = (emailService as any).default?.sendEmail || 
+                        ((emailService as any).sendEmail) || 
+                        (async (to: string, from: string, subject: string, html: string) => {
+                          console.log("Using fallback sendEmail function");
+                          // Direct usage of MailService
+                          const MailService = require('@sendgrid/mail').MailService;
+                          const mail = new MailService();
+                          mail.setApiKey(process.env.SENDGRID_API_KEY || '');
+                          return mail.send({
+                            to,
+                            from: "test@example.com",
+                            subject,
+                            html
+                          }).then(() => true).catch((err: any) => {
+                            console.error("Direct SendGrid error:", err);
+                            return false;
+                          });
+                        });
+      
+      const success = await sendEmail(
+        to,
+        "test@example.com", // Using a simple test email for demonstration
+        subject,
+        body,
+        {}
+      );
+      
+      if (success) {
+        res.json({ message: "Test email sent successfully" });
+      } else {
+        res.status(500).json({ message: "Failed to send test email" });
+      }
+    } catch (error) {
+      console.error("Error in test email endpoint:", error);
+      res.status(500).json({ message: "Error in test email endpoint", error: String(error) });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
