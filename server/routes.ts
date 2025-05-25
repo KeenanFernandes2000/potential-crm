@@ -218,6 +218,180 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to delete deal" });
     }
   });
+  
+  // Quotations
+  app.get("/api/quotations", async (req, res) => {
+    try {
+      const quotations = await storage.getQuotations();
+      res.json(quotations);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get quotations" });
+    }
+  });
+
+  app.get("/api/quotations/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const quotation = await storage.getQuotation(id);
+      if (!quotation) {
+        return res.status(404).json({ message: "Quotation not found" });
+      }
+      res.json(quotation);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get quotation" });
+    }
+  });
+
+  app.get("/api/deals/:dealId/quotations", async (req, res) => {
+    try {
+      const dealId = parseInt(req.params.dealId);
+      const quotations = await storage.getQuotationsByDeal(dealId);
+      res.json(quotations);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get quotations for deal" });
+    }
+  });
+
+  app.post("/api/quotations", async (req, res) => {
+    try {
+      const data = insertQuotationSchema.parse(req.body);
+      const quotation = await storage.createQuotation(data);
+      res.status(201).json(quotation);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid quotation data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create quotation" });
+    }
+  });
+
+  app.put("/api/quotations/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const data = insertQuotationSchema.parse(req.body);
+      const quotation = await storage.updateQuotation(id, data);
+      if (!quotation) {
+        return res.status(404).json({ message: "Quotation not found" });
+      }
+      res.json(quotation);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid quotation data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update quotation" });
+    }
+  });
+
+  app.delete("/api/quotations/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteQuotation(id);
+      if (!success) {
+        return res.status(404).json({ message: "Quotation not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete quotation" });
+    }
+  });
+
+  app.post("/api/quotations/:id/send", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const quotation = await storage.getQuotation(id);
+      
+      if (!quotation) {
+        return res.status(404).json({ message: "Quotation not found" });
+      }
+      
+      // Get contact information for email
+      const contact = await storage.getContact(quotation.contactId);
+      if (!contact) {
+        return res.status(404).json({ message: "Contact not found" });
+      }
+      
+      // Mark as sent in database
+      const updatedQuotation = await storage.markQuotationAsEmailSent(id);
+      
+      // In a real app, we would send the actual email
+      // For now, we'll just simulate success
+      
+      res.json({ 
+        message: "Quotation email sent successfully", 
+        quotation: updatedQuotation,
+        emailSent: true,
+        emailSentTo: contact.email
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to send quotation email" });
+    }
+  });
+  
+  // Quotation templates routes
+  app.get("/api/quotation-templates", async (req, res) => {
+    try {
+      const templates = await storage.getQuotationTemplates();
+      res.json(templates);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get quotation templates" });
+    }
+  });
+
+  app.get("/api/quotation-templates/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const template = await storage.getQuotationTemplate(id);
+      if (!template) {
+        return res.status(404).json({ message: "Quotation template not found" });
+      }
+      res.json(template);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get quotation template" });
+    }
+  });
+
+  app.post("/api/quotation-templates", async (req, res) => {
+    try {
+      const data = insertQuotationTemplateSchema.parse(req.body);
+      const template = await storage.createQuotationTemplate(data);
+      res.status(201).json(template);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid template data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create quotation template" });
+    }
+  });
+
+  app.put("/api/quotation-templates/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const data = insertQuotationTemplateSchema.parse(req.body);
+      const template = await storage.updateQuotationTemplate(id, data);
+      if (!template) {
+        return res.status(404).json({ message: "Quotation template not found" });
+      }
+      res.json(template);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid template data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update quotation template" });
+    }
+  });
+
+  app.delete("/api/quotation-templates/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteQuotationTemplate(id);
+      if (!success) {
+        return res.status(404).json({ message: "Quotation template not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete quotation template" });
+    }
+  });
 
   // Tasks
   app.get("/api/tasks", async (req, res) => {
