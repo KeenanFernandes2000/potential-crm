@@ -37,12 +37,30 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createQuotation(quotation: InsertQuotation): Promise<Quotation> {
-    const result = await db.insert(quotations).values(quotation).returning();
+    // Handle date conversion if needed
+    const processedQuotation = { ...quotation };
+    
+    if (typeof processedQuotation.validUntil === 'string') {
+      processedQuotation.validUntil = new Date(processedQuotation.validUntil);
+    }
+    
+    console.log("Processing quotation for insertion:", processedQuotation);
+    const result = await db.insert(quotations).values(processedQuotation).returning();
+    console.log("Quotation insertion result:", result);
     return result[0];
   }
 
   async updateQuotation(id: number, quotation: InsertQuotation): Promise<Quotation | undefined> {
-    const result = await db.update(quotations).set(quotation).where(eq(quotations.id, id)).returning();
+    // Handle date conversion if needed
+    const processedQuotation = { ...quotation };
+    
+    if (typeof processedQuotation.validUntil === 'string') {
+      processedQuotation.validUntil = new Date(processedQuotation.validUntil);
+    }
+    
+    console.log("Processing quotation for update:", processedQuotation);
+    const result = await db.update(quotations).set(processedQuotation).where(eq(quotations.id, id)).returning();
+    console.log("Quotation update result:", result);
     return result[0];
   }
 

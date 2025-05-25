@@ -54,6 +54,15 @@ export interface IStorage {
   updateQuotation(id: number, quotation: InsertQuotation): Promise<Quotation | undefined>;
   deleteQuotation(id: number): Promise<boolean>;
   markQuotationAsEmailSent(id: number): Promise<Quotation | undefined>;
+  
+  // Quotation Templates
+  getQuotationTemplates(): Promise<QuotationTemplate[]>;
+  getQuotationTemplate(id: number): Promise<QuotationTemplate | undefined>;
+  createQuotationTemplate(template: InsertQuotationTemplate): Promise<QuotationTemplate>;
+  updateQuotationTemplate(id: number, template: InsertQuotationTemplate): Promise<QuotationTemplate | undefined>;
+  deleteQuotationTemplate(id: number): Promise<boolean>;
+  deleteQuotation(id: number): Promise<boolean>;
+  markQuotationAsEmailSent(id: number): Promise<Quotation | undefined>;
 
   // Quotation Templates
   getQuotationTemplates(): Promise<QuotationTemplate[]>;
