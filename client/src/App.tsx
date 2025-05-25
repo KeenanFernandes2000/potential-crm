@@ -10,6 +10,7 @@ import Companies from "@/pages/companies";
 import Deals from "@/pages/deals";
 import Lists from "@/pages/lists";
 import Forms from "@/pages/forms";
+import Calendar from "@/pages/calendar";
 import SocialMedia from "@/pages/social";
 import Reports from "@/pages/reports";
 import Settings from "@/pages/settings";
@@ -24,6 +25,7 @@ function Router() {
       <Route path="/deals" component={Deals} />
       <Route path="/lists" component={Lists} />
       <Route path="/forms" component={Forms} />
+      <Route path="/calendar" component={Calendar} />
       <Route path="/social" component={SocialMedia} />
       <Route path="/reports" component={Reports} />
       <Route path="/settings" component={Settings} />
