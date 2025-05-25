@@ -20,12 +20,16 @@ const createDynamicSchema = (fields: any[]) => {
   const schemaMap: Record<string, any> = {};
   
   fields.forEach(field => {
-    // Skip if field is null or undefined or doesn't have a name property
-    if (!field || typeof field !== 'object' || !field.name) {
+    // Skip if field is null or undefined
+    if (!field || typeof field !== 'object') {
       return;
     }
     
-    const { name, type, required, options } = field;
+    // For forms we need to use the id as the field name since that's how they're identified
+    const fieldName = field.id;
+    if (!fieldName) return;
+    
+    const { type, required, options } = field;
     
     let fieldSchema: any = z.string();
     
@@ -63,7 +67,7 @@ const createDynamicSchema = (fields: any[]) => {
       fieldSchema = fieldSchema.optional();
     }
     
-    schemaMap[name] = fieldSchema;
+    schemaMap[fieldName] = fieldSchema;
   });
   
   return z.object(schemaMap);
@@ -100,15 +104,15 @@ const EmbedForm = () => {
         // Reset form with default values
         const defaultValues: Record<string, any> = {};
         formData.fields.forEach((field: any) => {
-          // Skip if field is null or undefined or doesn't have a name property
-          if (!field || typeof field !== 'object' || !field.name) {
+          // Skip if field is null or undefined or doesn't have an id property
+          if (!field || typeof field !== 'object' || !field.id) {
             return;
           }
           
           if (field.type === 'checkbox') {
-            defaultValues[field.name] = false;
+            defaultValues[field.id] = false;
           } else {
-            defaultValues[field.name] = '';
+            defaultValues[field.id] = '';
           }
         });
         
@@ -200,17 +204,17 @@ const EmbedForm = () => {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           {formData.fields && Array.isArray(formData.fields) && formData.fields.map((field: any, index: number) => {
-            // Skip if field is null or undefined or doesn't have a name property
-            if (!field || typeof field !== 'object' || !field.name) {
+            // Skip if field is null or undefined or doesn't have an id property
+            if (!field || typeof field !== 'object' || !field.id) {
               return null;
             }
             
             return (
-              <div key={field.name || `field-${index}`} className="space-y-2">
+              <div key={field.id || `field-${index}`} className="space-y-2">
                 {field.type === 'checkbox' ? (
                   <FormField
                     control={form.control}
-                    name={field.name}
+                    name={field.id}
                     render={({ field: formField }) => (
                       <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
                         <FormControl>
@@ -220,7 +224,7 @@ const EmbedForm = () => {
                           />
                         </FormControl>
                         <div className="space-y-1 leading-none">
-                          <FormLabel>{field.label || field.name}</FormLabel>
+                          <FormLabel>{field.label}</FormLabel>
                           {field.helpText && (
                             <FormDescription>{field.helpText}</FormDescription>
                           )}
@@ -231,10 +235,10 @@ const EmbedForm = () => {
                 ) : field.type === 'select' ? (
                   <FormField
                     control={form.control}
-                    name={field.name}
+                    name={field.id}
                     render={({ field: formField }) => (
                       <FormItem>
-                        <FormLabel>{field.label || field.name}</FormLabel>
+                        <FormLabel>{field.label}</FormLabel>
                         <Select 
                           onValueChange={formField.onChange} 
                           defaultValue={formField.value}
@@ -262,10 +266,10 @@ const EmbedForm = () => {
                 ) : field.type === 'radio' ? (
                   <FormField
                     control={form.control}
-                    name={field.name}
+                    name={field.id}
                     render={({ field: formField }) => (
                       <FormItem className="space-y-3">
-                        <FormLabel>{field.label || field.name}</FormLabel>
+                        <FormLabel>{field.label}</FormLabel>
                         <FormControl>
                           <RadioGroup
                             onValueChange={formField.onChange}
@@ -294,10 +298,10 @@ const EmbedForm = () => {
                 ) : field.type === 'textarea' ? (
                   <FormField
                     control={form.control}
-                    name={field.name}
+                    name={field.id}
                     render={({ field: formField }) => (
                       <FormItem>
-                        <FormLabel>{field.label || field.name}</FormLabel>
+                        <FormLabel>{field.label}</FormLabel>
                         <FormControl>
                           <Textarea
                             placeholder={field.placeholder || ''}
@@ -314,10 +318,10 @@ const EmbedForm = () => {
                 ) : (
                   <FormField
                     control={form.control}
-                    name={field.name}
+                    name={field.id}
                     render={({ field: formField }) => (
                       <FormItem>
-                        <FormLabel>{field.label || field.name}</FormLabel>
+                        <FormLabel>{field.label}</FormLabel>
                         <FormControl>
                           <Input
                             type={field.type || 'text'}
