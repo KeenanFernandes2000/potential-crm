@@ -1,10 +1,11 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Contact, insertContactSchema } from "@shared/schema";
+import { useState, useEffect } from "react";
+import { Contact, insertContactSchema, Company } from "@shared/schema";
 
 import {
   Form,
@@ -25,11 +26,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { X } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Plus, X } from "lucide-react";
 
 const formSchema = insertContactSchema.extend({
   tags: z.array(z.string()).optional(),
   webinarsAttended: z.array(z.string()).optional(),
+});
+
+// New company form schema
+const companyFormSchema = z.object({
+  name: z.string().min(1, "Company name is required"),
+  website: z.string().optional(),
+  industry: z.string().optional(),
+  country: z.string().optional(),
 });
 
 type ContactFormValues = z.infer<typeof formSchema>;
@@ -42,7 +52,8 @@ interface ContactFormProps {
 const ContactForm = ({ contact, onClose }: ContactFormProps) => {
   const { toast } = useToast();
   const isEditing = !!contact;
-
+  const [showCompanyDialog, setShowCompanyDialog] = useState(false);
+  
   const defaultValues: Partial<ContactFormValues> = {
     firstName: contact?.firstName || "",
     lastName: contact?.lastName || "",
@@ -57,12 +68,63 @@ const ContactForm = ({ contact, onClose }: ContactFormProps) => {
     notes: contact?.notes || "",
     tags: contact?.tags || [],
     webinarsAttended: contact?.webinarsAttended || [],
+    companyId: contact?.companyId || null,
   };
 
   const form = useForm<ContactFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues,
   });
+  
+  // Get current selected lead type for conditional rendering
+  const watchLeadType = form.watch("leadType");
+  
+  // Fetch companies for dropdown
+  const { data: companies } = useQuery({
+    queryKey: ["/api/companies"],
+    refetchOnWindowFocus: false,
+  });
+  
+  // New company form
+  const companyForm = useForm({
+    resolver: zodResolver(companyFormSchema),
+    defaultValues: {
+      name: "",
+      website: "",
+      industry: "",
+      country: ""
+    }
+  });
+
+  // Create company mutation
+  const createCompanyMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof companyFormSchema>) => {
+      return await apiRequest("POST", "/api/companies", data);
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
+      // Set the newly created company ID in the contact form
+      form.setValue("companyId", data.id);
+      toast({
+        title: "Company created",
+        description: `${data.name} has been added successfully.`,
+      });
+      setShowCompanyDialog(false);
+      companyForm.reset();
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+  
+  // Handle company form submission
+  const onCompanySubmit = (data: z.infer<typeof companyFormSchema>) => {
+    createCompanyMutation.mutate(data);
+  };
 
   const createContactMutation = useMutation({
     mutationFn: async (data: ContactFormValues) => {
@@ -267,6 +329,47 @@ const ContactForm = ({ contact, onClose }: ContactFormProps) => {
                 </FormItem>
               )}
             />
+            
+            {/* Company selection field that appears when leadType is selected */}
+            {watchLeadType && ["Customer", "Partner", "Vendor", "Investor"].includes(watchLeadType) && (
+              <FormField
+                control={form.control}
+                name="companyId"
+                render={({ field }) => (
+                  <FormItem className="col-span-2">
+                    <FormLabel>{watchLeadType} Company</FormLabel>
+                    <div className="flex gap-2 items-center">
+                      <Select
+                        value={field.value ? field.value.toString() : ""}
+                        onValueChange={(value) => field.onChange(value ? parseInt(value) : null)}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="flex-1">
+                            <SelectValue placeholder={`Select or create ${watchLeadType.toLowerCase()}`} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {companies?.map((company) => (
+                            <SelectItem key={company.id} value={company.id.toString()}>
+                              {company.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        size="icon"
+                        onClick={() => setShowCompanyDialog(true)}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <FormField
               control={form.control}
@@ -376,6 +479,108 @@ const ContactForm = ({ contact, onClose }: ContactFormProps) => {
           </div>
         </form>
       </Form>
+      
+      {/* Dialog for creating a new company */}
+      <Dialog open={showCompanyDialog} onOpenChange={setShowCompanyDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New {watchLeadType || ""} Company</DialogTitle>
+          </DialogHeader>
+          
+          <Form {...companyForm}>
+            <form onSubmit={companyForm.handleSubmit(onCompanySubmit)} className="space-y-4">
+              <FormField
+                control={companyForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Company Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter company name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={companyForm.control}
+                name="website"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Website</FormLabel>
+                    <FormControl>
+                      <Input placeholder="https://example.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={companyForm.control}
+                name="industry"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Industry</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Industry" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={companyForm.control}
+                name="country"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Country</FormLabel>
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select a country" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="United States">United States</SelectItem>
+                        <SelectItem value="Canada">Canada</SelectItem>
+                        <SelectItem value="United Kingdom">United Kingdom</SelectItem>
+                        <SelectItem value="Australia">Australia</SelectItem>
+                        <SelectItem value="Germany">Germany</SelectItem>
+                        <SelectItem value="France">France</SelectItem>
+                        <SelectItem value="Japan">Japan</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="flex justify-end space-x-3 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowCompanyDialog(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={createCompanyMutation.isPending}
+                >
+                  {createCompanyMutation.isPending ? "Creating..." : "Create Company"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
