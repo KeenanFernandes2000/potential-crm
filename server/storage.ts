@@ -95,6 +95,10 @@ export interface IStorage {
   getForms(): Promise<Form[]>;
   getForm(id: number): Promise<Form | undefined>;
   createForm(form: InsertForm): Promise<Form>;
+  updateForm(id: number, form: InsertForm): Promise<Form | undefined>;
+  deleteForm(id: number): Promise<boolean>;
+  getFormSubmissions(formId: number): Promise<any[]>;
+  createFormSubmission(submission: { formId: number; data: any; sourceInfo: any; contactId: number | null }): Promise<any>;
 
   // Social Media Accounts
   getSocialAccounts(): Promise<SocialAccount[]>;
@@ -532,6 +536,62 @@ export class MemStorage implements IStorage {
     };
     this.formsMap.set(id, newForm);
     return newForm;
+  }
+  
+  async updateForm(id: number, form: InsertForm): Promise<Form | undefined> {
+    const existingForm = this.formsMap.get(id);
+    if (!existingForm) {
+      return undefined;
+    }
+    
+    const updatedForm: Form = {
+      ...existingForm,
+      ...form,
+      id,
+      updatedAt: new Date()
+    };
+    
+    this.formsMap.set(id, updatedForm);
+    return updatedForm;
+  }
+  
+  async deleteForm(id: number): Promise<boolean> {
+    const exists = this.formsMap.has(id);
+    if (exists) {
+      this.formsMap.delete(id);
+      // Also delete any submissions associated with this form
+      this.formSubmissionsMap = new Map(
+        Array.from(this.formSubmissionsMap.entries())
+          .filter(([_, submission]) => submission.formId !== id)
+      );
+    }
+    return exists;
+  }
+  
+  // Form Submissions
+  private formSubmissionIdCounter = 1;
+  private formSubmissionsMap = new Map<number, any>();
+  
+  async getFormSubmissions(formId: number): Promise<any[]> {
+    return Array.from(this.formSubmissionsMap.values())
+      .filter(submission => submission.formId === formId);
+  }
+  
+  async createFormSubmission(submission: { formId: number; data: any; sourceInfo: any; contactId: number | null }): Promise<any> {
+    const id = this.formSubmissionIdCounter++;
+    const now = new Date();
+    
+    const newSubmission = {
+      id,
+      formId: submission.formId,
+      data: submission.data,
+      sourceInfo: submission.sourceInfo,
+      contactId: submission.contactId,
+      createdAt: now
+    };
+    
+    this.formSubmissionsMap.set(id, newSubmission);
+    return newSubmission;
   }
 
   // Quotations
@@ -988,10 +1048,49 @@ export class MemStorage implements IStorage {
 
 // Use this in the app
 import { eq } from "drizzle-orm";
-import db from "./db";
+import { db } from "./db";
 
 export class DatabaseStorage implements IStorage {
-  // ...all the existing methods
+  // Forms
+  async getForms(): Promise<Form[]> {
+    return await db.select().from(forms);
+  }
+
+  async getForm(id: number): Promise<Form | undefined> {
+    const results = await db.select().from(forms).where(eq(forms.id, id));
+    return results[0];
+  }
+
+  async createForm(form: InsertForm): Promise<Form> {
+    const results = await db.insert(forms).values(form).returning();
+    return results[0];
+  }
+  
+  async updateForm(id: number, form: InsertForm): Promise<Form | undefined> {
+    const results = await db.update(forms)
+      .set({
+        ...form,
+        updatedAt: new Date()
+      })
+      .where(eq(forms.id, id))
+      .returning();
+    return results[0];
+  }
+  
+  async deleteForm(id: number): Promise<boolean> {
+    const results = await db.delete(forms).where(eq(forms.id, id)).returning();
+    return results.length > 0;
+  }
+  
+  // Form Submissions
+  async getFormSubmissions(formId: number): Promise<any[]> {
+    return await db.select().from(formSubmissions).where(eq(formSubmissions.formId, formId));
+  }
+  
+  async createFormSubmission(submission: { formId: number; data: any; sourceInfo: any; contactId: number | null }): Promise<any> {
+    const results = await db.insert(formSubmissions).values(submission).returning();
+    return results[0];
+  }
   
   // Email Templates
   async getEmailTemplates(): Promise<EmailTemplate[]> {
