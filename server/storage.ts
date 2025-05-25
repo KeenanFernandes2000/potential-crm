@@ -619,6 +619,95 @@ import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 
 export class DatabaseStorage implements IStorage {
+  // Quotations
+  async getQuotations(): Promise<Quotation[]> {
+    return await db.select().from(quotations);
+  }
+
+  async getQuotation(id: number): Promise<Quotation | undefined> {
+    const result = await db.select().from(quotations).where(eq(quotations.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getQuotationsByDeal(dealId: number): Promise<Quotation[]> {
+    const result = await db.select().from(quotations).where(eq(quotations.dealId, dealId));
+    return result;
+  }
+
+  async createQuotation(quotation: InsertQuotation): Promise<Quotation> {
+    // Handle date conversion if needed
+    const processedQuotation = { ...quotation };
+    
+    if (typeof processedQuotation.validUntil === 'string') {
+      processedQuotation.validUntil = new Date(processedQuotation.validUntil);
+    }
+    
+    console.log("Processing quotation for insertion:", processedQuotation);
+    const result = await db.insert(quotations).values(processedQuotation).returning();
+    console.log("Quotation insertion result:", result);
+    return result[0];
+  }
+
+  async updateQuotation(id: number, quotation: InsertQuotation): Promise<Quotation | undefined> {
+    // Handle date conversion if needed
+    const processedQuotation = { ...quotation };
+    
+    if (typeof processedQuotation.validUntil === 'string') {
+      processedQuotation.validUntil = new Date(processedQuotation.validUntil);
+    }
+    
+    console.log("Processing quotation for update:", processedQuotation);
+    const result = await db.update(quotations).set(processedQuotation).where(eq(quotations.id, id)).returning();
+    console.log("Quotation update result:", result);
+    return result[0];
+  }
+
+  async deleteQuotation(id: number): Promise<boolean> {
+    const result = await db.delete(quotations).where(eq(quotations.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async markQuotationAsEmailSent(id: number): Promise<Quotation | undefined> {
+    const now = new Date();
+    const result = await db.update(quotations)
+      .set({ 
+        emailSent: true, 
+        emailSentAt: now,
+        updatedAt: now,
+        status: 'Sent'
+      })
+      .where(eq(quotations.id, id))
+      .returning();
+    return result[0];
+  }
+  
+  // Quotation Templates
+  async getQuotationTemplates(): Promise<QuotationTemplate[]> {
+    const result = await db.select().from(quotationTemplates);
+    return result;
+  }
+
+  async getQuotationTemplate(id: number): Promise<QuotationTemplate | undefined> {
+    const result = await db.select().from(quotationTemplates).where(eq(quotationTemplates.id, id)).limit(1);
+    return result[0];
+  }
+
+  async createQuotationTemplate(template: InsertQuotationTemplate): Promise<QuotationTemplate> {
+    const result = await db.insert(quotationTemplates).values(template).returning();
+    return result[0];
+  }
+
+  async updateQuotationTemplate(id: number, template: InsertQuotationTemplate): Promise<QuotationTemplate | undefined> {
+    const result = await db.update(quotationTemplates).set(template).where(eq(quotationTemplates.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteQuotationTemplate(id: number): Promise<boolean> {
+    const result = await db.delete(quotationTemplates).where(eq(quotationTemplates.id, id)).returning();
+    return result.length > 0;
+  }
+
+  // Users
   async getUser(id: number): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user || undefined;
