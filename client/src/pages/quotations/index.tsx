@@ -308,18 +308,21 @@ const Quotations = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {previewQuotation.items && previewQuotation.items.map((item, index) => (
-                      <tr key={index}>
-                        <td className="px-4 py-2">{item.description}</td>
-                        <td className="px-4 py-2 text-center">{item.quantity}</td>
-                        <td className="px-4 py-2 text-right">
-                          {previewQuotation.currency} {Number(item.unitPrice).toFixed(2)}
-                        </td>
-                        <td className="px-4 py-2 text-right">
-                          {previewQuotation.currency} {(Number(item.quantity) * Number(item.unitPrice)).toFixed(2)}
-                        </td>
-                      </tr>
-                    ))}
+                    {Array.isArray(previewQuotation.items) 
+                      ? previewQuotation.items.map((item: any, index: number) => (
+                        <tr key={index}>
+                          <td className="px-4 py-2">{item.description}</td>
+                          <td className="px-4 py-2 text-center">{item.quantity}</td>
+                          <td className="px-4 py-2 text-right">
+                            {previewQuotation.currency} {Number(item.unitPrice).toFixed(2)}
+                          </td>
+                          <td className="px-4 py-2 text-right">
+                            {previewQuotation.currency} {(Number(item.quantity) * Number(item.unitPrice)).toFixed(2)}
+                          </td>
+                        </tr>
+                      ))
+                      : null
+                    }
                   </tbody>
                   <tfoot>
                     <tr>
