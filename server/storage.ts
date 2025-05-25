@@ -40,6 +40,22 @@ export interface IStorage {
   updateDeal(id: number, deal: InsertDeal): Promise<Deal | undefined>;
   deleteDeal(id: number): Promise<boolean>;
 
+  // Quotations
+  getQuotations(): Promise<Quotation[]>;
+  getQuotation(id: number): Promise<Quotation | undefined>;
+  getQuotationsByDeal(dealId: number): Promise<Quotation[]>;
+  createQuotation(quotation: InsertQuotation): Promise<Quotation>;
+  updateQuotation(id: number, quotation: InsertQuotation): Promise<Quotation | undefined>;
+  deleteQuotation(id: number): Promise<boolean>;
+  markQuotationAsEmailSent(id: number): Promise<Quotation | undefined>;
+
+  // Quotation Templates
+  getQuotationTemplates(): Promise<QuotationTemplate[]>;
+  getQuotationTemplate(id: number): Promise<QuotationTemplate | undefined>;
+  createQuotationTemplate(template: InsertQuotationTemplate): Promise<QuotationTemplate>;
+  updateQuotationTemplate(id: number, template: InsertQuotationTemplate): Promise<QuotationTemplate | undefined>;
+  deleteQuotationTemplate(id: number): Promise<boolean>;
+
   // Tasks
   getTasks(): Promise<Task[]>;
   getTask(id: number): Promise<Task | undefined>;
@@ -95,6 +111,8 @@ export class MemStorage implements IStorage {
   private activitiesMap: Map<number, Activity>;
   private listsMap: Map<number, List>;
   private formsMap: Map<number, Form>;
+  private quotationsMap: Map<number, Quotation>;
+  private quotationTemplatesMap: Map<number, QuotationTemplate>;
   
   private userIdCounter: number;
   private contactIdCounter: number;
@@ -104,6 +122,8 @@ export class MemStorage implements IStorage {
   private activityIdCounter: number;
   private listIdCounter: number;
   private formIdCounter: number;
+  private quotationIdCounter: number;
+  private quotationTemplateIdCounter: number;
 
   constructor() {
     this.usersMap = new Map();

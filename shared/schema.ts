@@ -10,6 +10,7 @@ export const dealStageEnum = pgEnum('deal_stage', ['Inquiry', 'Qualified', 'Prop
 export const platformEnum = pgEnum('platform', ['Twitter', 'Facebook', 'Instagram', 'LinkedIn', 'YouTube', 'TikTok']);
 export const postStatusEnum = pgEnum('post_status', ['Draft', 'Scheduled', 'Published', 'Failed']);
 export const campaignStatusEnum = pgEnum('campaign_status', ['Active', 'Paused', 'Completed', 'Planned']);
+export const quotationStatusEnum = pgEnum('quotation_status', ['Draft', 'Sent', 'Accepted', 'Rejected', 'Expired']);
 
 // Users table
 export const users = pgTable("users", {
@@ -189,6 +190,38 @@ export const campaignPosts = pgTable("campaign_posts", {
   postId: integer("post_id").references(() => socialPosts.id).notNull(),
 });
 
+// Quotations table
+export const quotations = pgTable("quotations", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  dealId: integer("deal_id").references(() => deals.id).notNull(),
+  contactId: integer("contact_id").references(() => contacts.id).notNull(),
+  companyId: integer("company_id").references(() => companies.id),
+  amount: integer("amount").notNull(),
+  currency: text("currency").default("USD"),
+  status: quotationStatusEnum("status").default("Draft"),
+  validUntil: timestamp("valid_until"),
+  notes: text("notes"),
+  emailSent: boolean("email_sent").default(false),
+  emailSentAt: timestamp("email_sent_at"),
+  items: json("items").notNull(),  // Array of line items with descriptions, quantities, unit prices
+  termsAndConditions: text("terms_and_conditions"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+// Quotation Templates
+export const quotationTemplates = pgTable("quotation_templates", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  emailSubject: text("email_subject").notNull(),
+  emailBody: text("email_body").notNull(),
+  termsAndConditions: text("terms_and_conditions"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Schema validations
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -263,6 +296,26 @@ export const insertSocialCampaignSchema = createInsertSchema(socialCampaigns).om
   updatedAt: true,
 });
 
+export const insertQuotationSchema = createInsertSchema(quotations).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+  emailSentAt: true,
+}).extend({
+  validUntil: z.string().nullable().optional(),
+  items: z.array(z.object({
+    description: z.string(),
+    quantity: z.number().positive(),
+    unitPrice: z.number().positive(),
+  })).min(1),
+});
+
+export const insertQuotationTemplateSchema = createInsertSchema(quotationTemplates).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types for application
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -296,3 +349,9 @@ export type SocialPost = typeof socialPosts.$inferSelect;
 
 export type InsertSocialCampaign = z.infer<typeof insertSocialCampaignSchema>;
 export type SocialCampaign = typeof socialCampaigns.$inferSelect;
+
+export type InsertQuotation = z.infer<typeof insertQuotationSchema>;
+export type Quotation = typeof quotations.$inferSelect;
+
+export type InsertQuotationTemplate = z.infer<typeof insertQuotationTemplateSchema>;
+export type QuotationTemplate = typeof quotationTemplates.$inferSelect;
