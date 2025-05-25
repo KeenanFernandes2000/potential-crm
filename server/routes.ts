@@ -310,19 +310,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Contact not found" });
       }
       
+      // Get company information if applicable
+      let companyName = "Our Company";
+      if (quotation.companyId) {
+        const company = await storage.getCompany(quotation.companyId);
+        if (company) {
+          companyName = company.name;
+        }
+      }
+      
+      // Get template for email
+      const templates = await storage.getQuotationTemplates();
+      const template = templates && templates.length > 0 
+        ? templates[0]  // Use the first template as default
+        : {
+            name: "Default Template",
+            emailSubject: "Your Quotation #{{quotationNumber}}",
+            emailBody: "<p>Dear {{contactName}},</p><p>Please find attached your quotation {{quotationTitle}} with details below:</p>{{items}}<p>Valid until: {{validUntil}}</p><p>Thank you for your business!</p>",
+            termsAndConditions: "Standard terms and conditions apply."
+          };
+      
+      // Import email service here to avoid circular dependencies
+      const { sendEmail, formatQuotationEmail } = await import('./services/emailService');
+      
+      // Format email content
+      const emailHtml = formatQuotationEmail(quotation, contact, companyName, template);
+      
+      // Replace template variables in subject
+      const emailSubject = template.emailSubject.replace(/{{quotationNumber}}/g, quotation.id.toString());
+      
+      // Send email if SendGrid API key is configured
+      let emailSent = false;
+      if (process.env.SENDGRID_API_KEY) {
+        emailSent = await sendEmail({
+          to: contact.email,
+          from: "sales@yourcompany.com", // This must be a verified sender in SendGrid
+          subject: emailSubject,
+          html: emailHtml
+        });
+      } else {
+        console.log("SendGrid API key not set - email would have been sent with content:", emailHtml);
+      }
+      
       // Mark as sent in database
       const updatedQuotation = await storage.markQuotationAsEmailSent(id);
       
-      // In a real app, we would send the actual email
-      // For now, we'll just simulate success
-      
       res.json({ 
-        message: "Quotation email sent successfully", 
+        message: emailSent 
+          ? "Quotation email sent successfully" 
+          : "Quotation marked as sent, but email delivery is disabled (missing API key)",
         quotation: updatedQuotation,
         emailSent: true,
         emailSentTo: contact.email
       });
     } catch (error) {
+      console.error("Email sending error:", error);
       res.status(500).json({ message: "Failed to send quotation email" });
     }
   });

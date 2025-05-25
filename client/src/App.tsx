@@ -15,6 +15,7 @@ import Email from "@/pages/email";
 import SocialMedia from "@/pages/social";
 import Reports from "@/pages/reports";
 import Settings from "@/pages/settings";
+import Quotations from "@/pages/quotations";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -24,6 +25,7 @@ function Router() {
       <Route path="/contacts" component={Contacts} />
       <Route path="/companies" component={Companies} />
       <Route path="/deals" component={Deals} />
+      <Route path="/quotations" component={Quotations} />
       <Route path="/lists" component={Lists} />
       <Route path="/forms" component={Forms} />
       <Route path="/calendar" component={Calendar} />

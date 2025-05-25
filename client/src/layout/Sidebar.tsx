@@ -11,7 +11,8 @@ import {
   Mail, 
   Zap,
   BarChart3, 
-  Settings
+  Settings,
+  FileSpreadsheet
 } from "lucide-react";
 
 interface SidebarProps {
@@ -42,6 +43,11 @@ const Sidebar = ({ isOpen, closeSidebar }: SidebarProps) => {
       path: "/deals", 
       name: "Deals",
       icon: <DollarSign className="h-5 w-5 mr-3" />
+    },
+    { 
+      path: "/quotations", 
+      name: "Quotations",
+      icon: <FileSpreadsheet className="h-5 w-5 mr-3" />
     },
     { 
       path: "/lists", 
