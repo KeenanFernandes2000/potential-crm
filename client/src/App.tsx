@@ -11,6 +11,7 @@ import Deals from "@/pages/deals";
 import Lists from "@/pages/lists";
 import Forms from "@/pages/forms";
 import FormEmbed from "@/pages/forms/embed/[id]";
+import FormSubmissions from "@/pages/forms/submissions/[id]";
 import Calendar from "@/pages/calendar";
 import Email from "@/pages/email";
 import SocialMedia from "@/pages/social";
@@ -30,6 +31,7 @@ function Router() {
       <Route path="/lists" component={Lists} />
       <Route path="/forms" component={Forms} />
       <Route path="/forms/embed/:id" component={FormEmbed} />
+      <Route path="/forms/submissions/:id" component={FormSubmissions} />
       <Route path="/calendar" component={Calendar} />
       <Route path="/email" component={Email} />
       <Route path="/social" component={SocialMedia} />

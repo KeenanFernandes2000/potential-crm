@@ -1,273 +1,336 @@
-import { useEffect, useState } from 'react';
-import { useParams } from 'wouter';
-import { useQuery } from '@tanstack/react-query';
-import { Form } from '@shared/schema';
-import { z } from 'zod';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
-import { apiRequest } from '@/lib/queryClient';
+import { useState, useEffect } from "react";
+import { useParams } from "wouter";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import { Button } from "@/components/ui/button";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { apiRequest } from "@/lib/queryClient";
+import { Loader2, AlertTriangle, CheckCircle } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
-// UI Components
-import {
-  Form as FormComponent,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Checkbox } from '@/components/ui/checkbox';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import { Activity } from 'lucide-react';
+// Function to create a dynamic Zod schema based on form fields
+const createDynamicSchema = (fields: any[]) => {
+  const schemaMap: Record<string, any> = {};
+  
+  fields.forEach(field => {
+    const { name, type, required, options } = field;
+    
+    let fieldSchema: any = z.string();
+    
+    // Apply different schemas based on field type
+    switch (type) {
+      case 'email':
+        fieldSchema = z.string().email('Please enter a valid email address');
+        break;
+      case 'number':
+        fieldSchema = z.string().refine(val => !isNaN(Number(val)), {
+          message: 'Please enter a valid number',
+        });
+        break;
+      case 'checkbox':
+        fieldSchema = z.boolean().optional();
+        return; // Checkboxes handled differently
+      case 'select':
+      case 'radio':
+        if (options && options.length > 0) {
+          const validOptions = options.map((opt: any) => opt.value);
+          fieldSchema = z.enum(validOptions as [string, ...string[]]);
+        }
+        break;
+      case 'textarea':
+      case 'text':
+      default:
+        fieldSchema = z.string();
+        break;
+    }
+    
+    // Make the field optional or required
+    if (!required) {
+      fieldSchema = fieldSchema.optional();
+    }
+    
+    schemaMap[name] = fieldSchema;
+  });
+  
+  return z.object(schemaMap);
+};
 
-const FormEmbed = () => {
+const EmbedForm = () => {
   const { id } = useParams();
   const formId = parseInt(id);
+  const [dynamicSchema, setDynamicSchema] = useState<z.ZodObject<any>>(z.object({}));
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [submissionError, setSubmissionError] = useState<string | null>(null);
-
-  // Fetch the form data
-  const { data: formData, isLoading, error } = useQuery<Form>({
+  const [submitError, setSubmitError] = useState("");
+  
+  // Get form data
+  const { data: formData, isLoading } = useQuery({
     queryKey: [`/api/forms/${formId}`],
     enabled: !isNaN(formId),
+    retry: 1,
   });
-
-  // Dynamically create form schema based on form fields
-  const createDynamicSchema = (fields: any[]) => {
-    const schemaFields: Record<string, any> = {};
-    
-    fields.forEach((field) => {
-      let fieldSchema = z.string();
-      
-      if (field.type === 'email') {
-        fieldSchema = z.string().email({ message: 'Invalid email address' });
-      } else if (field.type === 'number') {
-        fieldSchema = z.string().transform((val) => {
-          const parsed = parseFloat(val);
-          if (isNaN(parsed)) {
-            return undefined;
-          }
-          return parsed;
-        }).pipe(z.number({ invalid_type_error: 'Must be a number' }));
-      } else if (field.type === 'tel') {
-        fieldSchema = z.string().min(5, { message: 'Phone number is too short' });
-      } else if (field.type === 'checkbox') {
-        fieldSchema = z.boolean().optional();
-      }
-      
-      if (field.required) {
-        if (field.type === 'checkbox') {
-          schemaFields[field.id] = z.boolean().refine(val => val === true, {
-            message: 'This field is required',
-          });
-        } else {
-          schemaFields[field.id] = fieldSchema.min(1, { message: 'This field is required' });
-        }
-      } else {
-        if (field.type === 'checkbox') {
-          schemaFields[field.id] = z.boolean().optional();
-        } else {
-          schemaFields[field.id] = fieldSchema.optional();
-        }
-      }
-    });
-    
-    return z.object(schemaFields);
-  };
-
-  // Initialize form with empty defaults (will be updated when form data loads)
+  
+  // Initialize form
   const form = useForm<any>({
-    resolver: zodResolver(
-      formData && formData.fields 
-        ? createDynamicSchema(formData.fields as any[]) 
-        : z.object({})
-    ),
+    resolver: zodResolver(dynamicSchema),
     defaultValues: {},
   });
-
-  // Update form when data loads
+  
+  // Create dynamic schema when form data is loaded
   useEffect(() => {
-    if (formData && formData.fields) {
-      const defaultValues: Record<string, any> = {};
+    if (formData && formData.fields && Array.isArray(formData.fields)) {
+      // Create Zod schema based on form fields
+      const schema = createDynamicSchema(formData.fields);
+      setDynamicSchema(schema);
       
-      (formData.fields as any[]).forEach((field) => {
+      // Reset form with default values
+      const defaultValues: Record<string, any> = {};
+      formData.fields.forEach((field: any) => {
         if (field.type === 'checkbox') {
-          defaultValues[field.id] = false;
+          defaultValues[field.name] = false;
         } else {
-          defaultValues[field.id] = '';
+          defaultValues[field.name] = '';
         }
       });
       
       form.reset(defaultValues);
     }
   }, [formData, form]);
-
-  const onSubmit = async (data: any) => {
-    try {
-      setSubmissionError(null);
-      
-      // Add metadata about the form
-      const submissionData = {
-        formId,
-        data,
-        sourceInfo: {
-          referrer: document.referrer,
-          userAgent: navigator.userAgent,
-          timestamp: new Date().toISOString(),
-        }
-      };
-      
-      await apiRequest('/api/form-submissions', 'POST', submissionData);
+  
+  // Submit mutation
+  const submitMutation = useMutation({
+    mutationFn: (data: any) => {
+      return apiRequest("POST", `/api/forms/${formId}/submit`, data);
+    },
+    onSuccess: () => {
       setIsSubmitted(true);
-      
-      // Clear form after successful submission
+      setSubmitError("");
       form.reset();
-    } catch (error) {
-      console.error('Form submission error:', error);
-      setSubmissionError('There was an error submitting the form. Please try again.');
+    },
+    onError: (error: any) => {
+      setSubmitError(error?.message || "Failed to submit the form. Please try again.");
     }
+  });
+  
+  // Handle form submission
+  const onSubmit = (data: any) => {
+    submitMutation.mutate(data);
   };
-
+  
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-white dark:bg-gray-950">
-        <Activity className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex justify-center items-center min-h-screen bg-gray-50 dark:bg-gray-900">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
-
-  if (error || !formData) {
+  
+  if (!formData) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-white dark:bg-gray-950">
-        <h3 className="text-xl font-semibold text-center mb-2">Form Not Found</h3>
-        <p className="text-center text-gray-600 dark:text-gray-400">
-          The form you are looking for does not exist or has been removed.
-        </p>
+      <div className="p-6 max-w-md mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-md">
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>
+            Form not found. Please check the form ID and try again.
+          </AlertDescription>
+        </Alert>
       </div>
     );
   }
-
+  
   if (isSubmitted) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen p-6 bg-white dark:bg-gray-950">
-        <div className="max-w-md w-full bg-white dark:bg-gray-900 rounded-lg shadow-md p-8">
-          <h3 className="text-xl font-semibold text-center mb-4">Thank You!</h3>
-          <p className="text-center text-gray-600 dark:text-gray-400 mb-6">
+      <div className="p-6 max-w-md mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-md">
+        <Alert variant="default" className="bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-900">
+          <CheckCircle className="h-4 w-4 text-green-600 dark:text-green-400" />
+          <AlertTitle>Thank you!</AlertTitle>
+          <AlertDescription>
             Your form has been submitted successfully.
-          </p>
-          <div className="flex justify-center">
-            <Button 
-              onClick={() => setIsSubmitted(false)}
-              variant="outline"
-            >
-              Submit Another Response
-            </Button>
-          </div>
-        </div>
+          </AlertDescription>
+        </Alert>
+        <Button 
+          className="mt-4 w-full" 
+          onClick={() => setIsSubmitted(false)}
+        >
+          Submit Another Response
+        </Button>
       </div>
     );
   }
-
+  
   return (
-    <div className="flex justify-center min-h-screen p-6 bg-white dark:bg-gray-950">
-      <div className="max-w-xl w-full bg-white dark:bg-gray-900 rounded-lg shadow-md">
-        <div className="p-6 border-b border-gray-200 dark:border-gray-800">
-          <h3 className="text-xl font-semibold">{formData.name}</h3>
-          {formData.description && (
-            <p className="mt-2 text-gray-600 dark:text-gray-400">
-              {formData.description}
-            </p>
-          )}
-        </div>
-        
-        <FormComponent {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="p-6 space-y-6">
-            {submissionError && (
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 p-4 rounded-md">
-                {submissionError}
-              </div>
-            )}
-            
-            {(formData.fields as any[]).map((field) => (
-              <FormField
-                key={field.id}
-                control={form.control}
-                name={field.id}
-                render={({ field: formField }) => (
-                  <FormItem>
-                    <FormLabel>
-                      {field.label}
-                      {field.required && <span className="text-red-500 ml-1">*</span>}
-                    </FormLabel>
-                    <FormControl>
-                      {field.type === 'textarea' ? (
+    <div className="p-6 max-w-md mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-md">
+      <h1 className="text-2xl font-bold mb-2">{formData.name}</h1>
+      {formData.description && (
+        <p className="text-gray-600 dark:text-gray-400 mb-6">{formData.description}</p>
+      )}
+      
+      {submitError && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{submitError}</AlertDescription>
+        </Alert>
+      )}
+      
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          {formData.fields && formData.fields.map((field: any) => (
+            <div key={field.name} className="space-y-2">
+              {field.type === 'checkbox' ? (
+                <FormField
+                  control={form.control}
+                  name={field.name}
+                  render={({ field: formField }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                      <FormControl>
+                        <Checkbox
+                          checked={formField.value}
+                          onCheckedChange={formField.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>{field.label}</FormLabel>
+                        {field.helpText && (
+                          <FormDescription>{field.helpText}</FormDescription>
+                        )}
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              ) : field.type === 'select' ? (
+                <FormField
+                  control={form.control}
+                  name={field.name}
+                  render={({ field: formField }) => (
+                    <FormItem>
+                      <FormLabel>{field.label}</FormLabel>
+                      <Select 
+                        onValueChange={formField.onChange} 
+                        defaultValue={formField.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select an option" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {field.options && field.options.map((option: any) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {field.helpText && (
+                        <FormDescription>{field.helpText}</FormDescription>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              ) : field.type === 'radio' ? (
+                <FormField
+                  control={form.control}
+                  name={field.name}
+                  render={({ field: formField }) => (
+                    <FormItem className="space-y-3">
+                      <FormLabel>{field.label}</FormLabel>
+                      <FormControl>
+                        <RadioGroup
+                          onValueChange={formField.onChange}
+                          defaultValue={formField.value}
+                          className="flex flex-col space-y-1"
+                        >
+                          {field.options && field.options.map((option: any) => (
+                            <FormItem className="flex items-center space-x-3 space-y-0" key={option.value}>
+                              <FormControl>
+                                <RadioGroupItem value={option.value} />
+                              </FormControl>
+                              <FormLabel className="font-normal">
+                                {option.label}
+                              </FormLabel>
+                            </FormItem>
+                          ))}
+                        </RadioGroup>
+                      </FormControl>
+                      {field.helpText && (
+                        <FormDescription>{field.helpText}</FormDescription>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              ) : field.type === 'textarea' ? (
+                <FormField
+                  control={form.control}
+                  name={field.name}
+                  render={({ field: formField }) => (
+                    <FormItem>
+                      <FormLabel>{field.label}</FormLabel>
+                      <FormControl>
                         <Textarea
                           placeholder={field.placeholder || ''}
                           {...formField}
                         />
-                      ) : field.type === 'select' ? (
-                        <Select
-                          onValueChange={formField.onChange}
-                          value={formField.value}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder={field.placeholder || 'Select an option'} />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {field.options?.map((option: string, idx: number) => (
-                              <SelectItem key={idx} value={option}>
-                                {option}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      ) : field.type === 'checkbox' ? (
-                        <div className="flex items-center space-x-2">
-                          <Checkbox
-                            checked={formField.value}
-                            onCheckedChange={formField.onChange}
-                            id={field.id}
-                          />
-                          <label
-                            htmlFor={field.id}
-                            className="text-sm text-gray-600 dark:text-gray-400"
-                          >
-                            {field.placeholder || 'I agree'}
-                          </label>
-                        </div>
-                      ) : (
+                      </FormControl>
+                      {field.helpText && (
+                        <FormDescription>{field.helpText}</FormDescription>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              ) : (
+                <FormField
+                  control={form.control}
+                  name={field.name}
+                  render={({ field: formField }) => (
+                    <FormItem>
+                      <FormLabel>{field.label}</FormLabel>
+                      <FormControl>
                         <Input
-                          type={field.type}
+                          type={field.type || 'text'}
                           placeholder={field.placeholder || ''}
                           {...formField}
                         />
+                      </FormControl>
+                      {field.helpText && (
+                        <FormDescription>{field.helpText}</FormDescription>
                       )}
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            ))}
-            
-            <div className="pt-4">
-              <Button type="submit" className="w-full">
-                Submit
-              </Button>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )}
             </div>
-          </form>
-        </FormComponent>
-      </div>
+          ))}
+          
+          <Button 
+            type="submit" 
+            className="w-full"
+            disabled={submitMutation.isPending}
+          >
+            {submitMutation.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Submitting...
+              </>
+            ) : (
+              "Submit"
+            )}
+          </Button>
+        </form>
+      </Form>
     </div>
   );
 };
 
-export default FormEmbed;
+export default EmbedForm;
