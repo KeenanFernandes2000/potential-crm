@@ -111,8 +111,8 @@ const FormForm: React.FC<FormFormProps> = ({ onClose, existingForm }) => {
   const mutation = useMutation({
     mutationFn: (data: FormValues) => {
       return existingForm
-        ? apiRequest(`/api/forms/${existingForm.id}`, 'PATCH', data)
-        : apiRequest('/api/forms', 'POST', data);
+        ? apiRequest('PATCH', `/api/forms/${existingForm.id}`, data)
+        : apiRequest('POST', '/api/forms', data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/forms'] });
