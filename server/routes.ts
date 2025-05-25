@@ -254,10 +254,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/quotations", async (req, res) => {
     try {
+      console.log("Creating quotation with data:", JSON.stringify(req.body));
       const data = insertQuotationSchema.parse(req.body);
+      console.log("Parsed data:", JSON.stringify(data));
       const quotation = await storage.createQuotation(data);
+      console.log("Created quotation:", JSON.stringify(quotation));
       res.status(201).json(quotation);
     } catch (error) {
+      console.error("Error creating quotation:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid quotation data", errors: error.errors });
       }
