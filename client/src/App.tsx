@@ -1,4 +1,4 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -10,6 +10,7 @@ import Companies from "@/pages/companies";
 import Deals from "@/pages/deals";
 import Lists from "@/pages/lists";
 import Forms from "@/pages/forms";
+import FormEmbed from "@/pages/forms/embed/[id]";
 import Calendar from "@/pages/calendar";
 import Email from "@/pages/email";
 import SocialMedia from "@/pages/social";
@@ -28,6 +29,7 @@ function Router() {
       <Route path="/quotations" component={Quotations} />
       <Route path="/lists" component={Lists} />
       <Route path="/forms" component={Forms} />
+      <Route path="/forms/embed/:id" component={FormEmbed} />
       <Route path="/calendar" component={Calendar} />
       <Route path="/email" component={Email} />
       <Route path="/social" component={SocialMedia} />
@@ -39,13 +41,21 @@ function Router() {
 }
 
 function App() {
+  const [location] = useLocation();
+  const isEmbedRoute = location.startsWith('/forms/embed/');
+
+  // For embedded forms, don't use the main layout
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
-        <MainLayout>
+        {isEmbedRoute ? (
           <Router />
-        </MainLayout>
+        ) : (
+          <MainLayout>
+            <Router />
+          </MainLayout>
+        )}
       </TooltipProvider>
     </QueryClientProvider>
   );

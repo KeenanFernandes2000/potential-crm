@@ -597,6 +597,77 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to create form" });
     }
   });
+  
+  app.put("/api/forms/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const data = insertFormSchema.parse(req.body);
+      const form = await storage.updateForm(id, data);
+      if (!form) {
+        return res.status(404).json({ message: "Form not found" });
+      }
+      res.json(form);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid form data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update form" });
+    }
+  });
+  
+  app.delete("/api/forms/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteForm(id);
+      if (!success) {
+        return res.status(404).json({ message: "Form not found" });
+      }
+      res.status(204).end();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete form" });
+    }
+  });
+  
+  // Form Submissions
+  app.post("/api/form-submissions", async (req, res) => {
+    try {
+      const { formId, data, sourceInfo } = req.body;
+      
+      // Validate formId
+      if (!formId || typeof formId !== 'number') {
+        return res.status(400).json({ message: "Invalid form ID" });
+      }
+      
+      // Check if form exists
+      const form = await storage.getForm(formId);
+      if (!form) {
+        return res.status(404).json({ message: "Form not found" });
+      }
+      
+      // Store submission
+      const submission = await storage.createFormSubmission({
+        formId,
+        data,
+        sourceInfo,
+        contactId: null,
+      });
+      
+      res.status(201).json({ success: true, submissionId: submission.id });
+    } catch (error) {
+      console.error("Form submission error:", error);
+      res.status(500).json({ message: "Failed to save form submission" });
+    }
+  });
+  
+  app.get("/api/forms/:id/submissions", async (req, res) => {
+    try {
+      const formId = parseInt(req.params.id);
+      const submissions = await storage.getFormSubmissions(formId);
+      res.json(submissions);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get form submissions" });
+    }
+  });
 
   // Dashboard Stats
   app.get("/api/dashboard/stats", async (req, res) => {
