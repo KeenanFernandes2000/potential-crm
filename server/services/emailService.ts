@@ -1,4 +1,9 @@
 import { MailService } from '@sendgrid/mail';
+import { EmailCampaign, EmailCampaignRecipient, Contact, Quotation, QuotationTemplate, EmailTemplate } from '@shared/schema';
+import { storage } from '../storage';
+import { eq } from 'drizzle-orm';
+import { db } from '../db';
+import { listContacts } from '@shared/schema';
 
 // Initialize mail service
 const mailService = new MailService();
@@ -14,6 +19,18 @@ interface EmailParams {
   subject: string;
   text?: string;
   html?: string;
+  cc?: string;
+  bcc?: string;
+}
+
+interface BulkEmailParams {
+  to: string[];
+  from: string;
+  subject: string;
+  text?: string;
+  html?: string;
+  cc?: string[];
+  bcc?: string[];
 }
 
 /**
@@ -34,11 +51,183 @@ export async function sendEmail(params: EmailParams): Promise<boolean> {
       subject: params.subject,
       text: params.text,
       html: params.html,
+      cc: params.cc,
+      bcc: params.bcc
     });
     return true;
   } catch (error) {
     console.error('SendGrid email error:', error);
     return false;
+  }
+}
+
+/**
+ * Send bulk emails using SendGrid
+ * @param params Bulk email parameters with arrays of recipients
+ * @returns Boolean indicating if emails were sent successfully
+ */
+export async function sendBulkEmails(params: BulkEmailParams): Promise<boolean> {
+  if (!process.env.SENDGRID_API_KEY) {
+    console.warn('SendGrid API key not set - email sending is disabled');
+    return false;
+  }
+
+  try {
+    // Convert recipient arrays to individual emails for SendGrid
+    const emails = params.to.map(recipient => ({
+      to: recipient,
+      from: params.from,
+      subject: params.subject,
+      text: params.text,
+      html: params.html,
+      cc: params.cc,
+      bcc: params.bcc
+    }));
+
+    // Send all emails
+    await mailService.send(emails);
+    return true;
+  } catch (error) {
+    console.error('SendGrid bulk email error:', error);
+    return false;
+  }
+}
+
+/**
+ * Send an email campaign to all recipients
+ * @param campaignId ID of the email campaign
+ * @returns Boolean indicating if campaign was sent successfully
+ */
+export async function sendEmailCampaign(campaignId: number): Promise<boolean> {
+  try {
+    // Get campaign details
+    const campaign = await storage.getEmailCampaign(campaignId);
+    if (!campaign) {
+      console.error(`Campaign with ID ${campaignId} not found`);
+      return false;
+    }
+
+    // Get campaign recipients
+    const recipients = await storage.getEmailCampaignRecipients(campaignId);
+    if (!recipients || recipients.length === 0) {
+      console.error(`No recipients found for campaign with ID ${campaignId}`);
+      return false;
+    }
+
+    // Get contacts for all recipients
+    const contacts: Contact[] = [];
+    for (const recipient of recipients) {
+      const contact = await storage.getContact(recipient.contactId);
+      if (contact) {
+        contacts.push(contact);
+      }
+    }
+
+    if (contacts.length === 0) {
+      console.error(`No valid contacts found for campaign with ID ${campaignId}`);
+      return false;
+    }
+
+    // Prepare email content
+    const emailAddresses = contacts.map(contact => contact.email);
+    
+    // Send the bulk email
+    const result = await sendBulkEmails({
+      to: emailAddresses,
+      from: `${campaign.fromName} <${campaign.fromEmail}>`,
+      subject: campaign.subject,
+      html: campaign.body
+    });
+
+    if (result) {
+      // Update campaign status
+      await storage.updateEmailCampaign(campaignId, {
+        ...campaign,
+        status: "Sent",
+        sentAt: new Date()
+      });
+    }
+
+    return result;
+  } catch (error) {
+    console.error('Email campaign sending error:', error);
+    return false;
+  }
+}
+
+/**
+ * Send an email to all contacts in a list
+ * @param listId ID of the contact list
+ * @param subject Email subject
+ * @param body Email body (HTML)
+ * @param fromName Sender name
+ * @param fromEmail Sender email
+ * @returns Boolean indicating if emails were sent successfully
+ */
+export async function sendEmailToList(
+  listId: number, 
+  subject: string, 
+  body: string, 
+  fromName: string, 
+  fromEmail: string
+): Promise<boolean> {
+  try {
+    // First, get the list to ensure it exists
+    const list = await storage.getList(listId);
+    if (!list) {
+      console.error(`List with ID ${listId} not found`);
+      return false;
+    }
+
+    // Get contacts from list (assuming there's a function to get contacts by list)
+    const contacts = await getContactsFromList(listId);
+    if (!contacts || contacts.length === 0) {
+      console.error(`No contacts found in list with ID ${listId}`);
+      return false;
+    }
+
+    // Prepare email content
+    const emailAddresses = contacts.map(contact => contact.email);
+    
+    // Send the bulk email
+    return await sendBulkEmails({
+      to: emailAddresses,
+      from: `${fromName} <${fromEmail}>`,
+      subject: subject,
+      html: body
+    });
+  } catch (error) {
+    console.error('List email sending error:', error);
+    return false;
+  }
+}
+
+/**
+ * Helper function to get contacts from a list
+ * @param listId ID of the list
+ * @returns Array of contacts in the list
+ */
+async function getContactsFromList(listId: number): Promise<Contact[]> {
+  try {
+    // Get all contacts
+    const allContacts = await storage.getContacts();
+    
+    // Get list-contact relationships from the junction table
+    const listContactRecords = await db.select().from(listContacts).where(eq(listContacts.listId, listId));
+    
+    // Match contacts from the list
+    const contacts: Contact[] = [];
+    for (const lc of listContactRecords) {
+      const contact = allContacts.find(c => c.id === lc.contactId);
+      if (contact) {
+        contacts.push(contact);
+      }
+    }
+    
+    return contacts;
+  } catch (error) {
+    console.error('Error getting contacts from list:', error);
+    return [];
   }
 }
 

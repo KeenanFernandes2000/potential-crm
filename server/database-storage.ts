@@ -1,6 +1,7 @@
 import { 
   users, contacts, companies, deals, tasks, activities, lists, forms, formSubmissions, listContacts,
   socialAccounts, socialPosts, socialCampaigns, campaignPosts, quotations, quotationTemplates,
+  emailTemplates, emailCampaigns, emailCampaignRecipients,
   type User, type InsertUser, 
   type Contact, type InsertContact,
   type Company, type InsertCompany,
@@ -13,7 +14,10 @@ import {
   type QuotationTemplate, type InsertQuotationTemplate,
   type SocialAccount, type InsertSocialAccount,
   type SocialPost, type InsertSocialPost,
-  type SocialCampaign, type InsertSocialCampaign
+  type SocialCampaign, type InsertSocialCampaign,
+  type EmailTemplate, type InsertEmailTemplate,
+  type EmailCampaign, type InsertEmailCampaign,
+  type EmailCampaignRecipient, type InsertEmailCampaignRecipient
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and } from "drizzle-orm";
@@ -380,5 +384,158 @@ export class DatabaseStorage implements IStorage {
       revenue: "$89,421",
       conversionRate: "24.8%"
     };
+  }
+
+  // Email Templates
+  async getEmailTemplates(): Promise<EmailTemplate[]> {
+    return await db.select().from(emailTemplates);
+  }
+
+  async getEmailTemplate(id: number): Promise<EmailTemplate | undefined> {
+    const [template] = await db.select().from(emailTemplates).where(eq(emailTemplates.id, id));
+    return template;
+  }
+
+  async createEmailTemplate(template: InsertEmailTemplate): Promise<EmailTemplate> {
+    const [newTemplate] = await db.insert(emailTemplates).values(template).returning();
+    return newTemplate;
+  }
+
+  async updateEmailTemplate(id: number, template: InsertEmailTemplate): Promise<EmailTemplate | undefined> {
+    const [updatedTemplate] = await db
+      .update(emailTemplates)
+      .set(template)
+      .where(eq(emailTemplates.id, id))
+      .returning();
+    return updatedTemplate;
+  }
+
+  async deleteEmailTemplate(id: number): Promise<boolean> {
+    await db.delete(emailTemplates).where(eq(emailTemplates.id, id));
+    return true;
+  }
+
+  // Email Campaigns
+  async getEmailCampaigns(): Promise<EmailCampaign[]> {
+    return await db.select().from(emailCampaigns);
+  }
+
+  async getEmailCampaign(id: number): Promise<EmailCampaign | undefined> {
+    const [campaign] = await db.select().from(emailCampaigns).where(eq(emailCampaigns.id, id));
+    return campaign;
+  }
+
+  async createEmailCampaign(campaign: InsertEmailCampaign): Promise<EmailCampaign> {
+    const [newCampaign] = await db.insert(emailCampaigns).values(campaign).returning();
+    return newCampaign;
+  }
+
+  async updateEmailCampaign(id: number, campaign: InsertEmailCampaign): Promise<EmailCampaign | undefined> {
+    const [updatedCampaign] = await db
+      .update(emailCampaigns)
+      .set(campaign)
+      .where(eq(emailCampaigns.id, id))
+      .returning();
+    return updatedCampaign;
+  }
+
+  async deleteEmailCampaign(id: number): Promise<boolean> {
+    await db.delete(emailCampaigns).where(eq(emailCampaigns.id, id));
+    return true;
+  }
+
+  // Email Campaign Recipients
+  async getEmailCampaignRecipients(campaignId: number): Promise<EmailCampaignRecipient[]> {
+    return await db
+      .select()
+      .from(emailCampaignRecipients)
+      .where(eq(emailCampaignRecipients.campaignId, campaignId));
+  }
+
+  async addContactToEmailCampaign(campaignId: number, contactId: number): Promise<EmailCampaignRecipient> {
+    const [recipient] = await db
+      .insert(emailCampaignRecipients)
+      .values({
+        campaignId,
+        contactId,
+        status: "Draft"
+      })
+      .returning();
+    return recipient;
+  }
+
+  async addContactListToEmailCampaign(campaignId: number, listId: number): Promise<EmailCampaignRecipient[]> {
+    // Get all contacts from the list
+    const listContactRecords = await db.select().from(listContacts).where(eq(listContacts.listId, listId));
+    
+    // Add each contact to the campaign
+    const recipients: EmailCampaignRecipient[] = [];
+    
+    for (const lc of listContactRecords) {
+      try {
+        const [recipient] = await db
+          .insert(emailCampaignRecipients)
+          .values({
+            campaignId,
+            contactId: lc.contactId,
+            status: "Draft"
+          })
+          .returning();
+        
+        recipients.push(recipient);
+      } catch (error) {
+        console.error(`Failed to add contact ${lc.contactId} to campaign ${campaignId}:`, error);
+        // Continue with the next contact
+      }
+    }
+    
+    return recipients;
+  }
+
+  // Email Sending Functions
+  // These methods primarily update the database status
+  // The actual email sending is handled by the email service
+  async sendEmailCampaign(campaignId: number): Promise<boolean> {
+    try {
+      const [updatedCampaign] = await db
+        .update(emailCampaigns)
+        .set({
+          status: "Sent",
+          sentAt: new Date()
+        })
+        .where(eq(emailCampaigns.id, campaignId))
+        .returning();
+      
+      // If we successfully updated the campaign, consider it sent
+      return !!updatedCampaign;
+    } catch (error) {
+      console.error("Error updating campaign status:", error);
+      return false;
+    }
+  }
+
+  async sendQuotationEmail(quotationId: number): Promise<boolean> {
+    try {
+      const [updatedQuotation] = await db
+        .update(quotations)
+        .set({
+          emailSent: true,
+          emailSentAt: new Date(),
+          status: "Sent"
+        })
+        .where(eq(quotations.id, quotationId))
+        .returning();
+      
+      return !!updatedQuotation;
+    } catch (error) {
+      console.error("Error updating quotation email status:", error);
+      return false;
+    }
+  }
+
+  async sendEmailToList(listId: number, subject: string, body: string, fromName: string, fromEmail: string): Promise<boolean> {
+    // This method doesn't need to update the database since it's a one-time action
+    // The actual email sending is handled by the email service
+    return true;
   }
 }
