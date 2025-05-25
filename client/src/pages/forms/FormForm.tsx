@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useForm } from 'react-hook-form';
+import { useForm, useFieldArray } from 'react-hook-form';
 import { useToast } from '@/hooks/use-toast';
 import { insertFormSchema } from '@shared/schema';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -101,7 +101,11 @@ const FormForm: React.FC<FormFormProps> = ({ onClose, existingForm }) => {
     },
   });
   
-  const { fields, append, remove, update } = form.control._formValues.fields;
+  // Use field array to manage dynamic form fields
+  const { fields, append, remove, update } = useFieldArray({
+    control: form.control,
+    name: "fields"
+  });
 
   // Mutation for creating/updating forms
   const mutation = useMutation({
