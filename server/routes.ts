@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
-import { insertContactSchema, insertCompanySchema, insertDealSchema, insertTaskSchema, insertActivitySchema, insertListSchema, insertFormSchema, insertQuotationSchema, insertQuotationTemplateSchema } from "@shared/schema";
+import { insertContactSchema, insertCompanySchema, insertDealSchema, insertTaskSchema, insertActivitySchema, insertListSchema, insertFormSchema, insertQuotationSchema, insertQuotationTemplateSchema, insertEmailTemplateSchema, insertEmailCampaignSchema } from "@shared/schema";
 import twitterRoutes from "./routes/twitter";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -605,6 +605,239 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(stats);
     } catch (error) {
       res.status(500).json({ message: "Failed to get dashboard statistics" });
+    }
+  });
+
+  // Email Templates
+  app.get("/api/email-templates", async (req, res) => {
+    try {
+      const templates = await storage.getEmailTemplates();
+      res.json(templates);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get email templates" });
+    }
+  });
+  
+  app.get("/api/email-templates/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const template = await storage.getEmailTemplate(id);
+      if (!template) {
+        return res.status(404).json({ message: "Email template not found" });
+      }
+      res.json(template);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get email template" });
+    }
+  });
+  
+  app.post("/api/email-templates", async (req, res) => {
+    try {
+      const data = insertEmailTemplateSchema.parse(req.body);
+      const template = await storage.createEmailTemplate(data);
+      res.status(201).json(template);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid email template data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create email template" });
+    }
+  });
+  
+  app.put("/api/email-templates/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const data = insertEmailTemplateSchema.parse(req.body);
+      const template = await storage.updateEmailTemplate(id, data);
+      if (!template) {
+        return res.status(404).json({ message: "Email template not found" });
+      }
+      res.json(template);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid email template data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update email template" });
+    }
+  });
+  
+  app.delete("/api/email-templates/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteEmailTemplate(id);
+      if (!success) {
+        return res.status(404).json({ message: "Email template not found" });
+      }
+      res.json({ message: "Email template deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete email template" });
+    }
+  });
+  
+  // Email Campaigns
+  app.get("/api/email-campaigns", async (req, res) => {
+    try {
+      const campaigns = await storage.getEmailCampaigns();
+      res.json(campaigns);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get email campaigns" });
+    }
+  });
+  
+  app.get("/api/email-campaigns/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const campaign = await storage.getEmailCampaign(id);
+      if (!campaign) {
+        return res.status(404).json({ message: "Email campaign not found" });
+      }
+      res.json(campaign);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get email campaign" });
+    }
+  });
+  
+  app.post("/api/email-campaigns", async (req, res) => {
+    try {
+      const data = insertEmailCampaignSchema.parse(req.body);
+      const campaign = await storage.createEmailCampaign(data);
+      res.status(201).json(campaign);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid email campaign data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create email campaign" });
+    }
+  });
+  
+  app.put("/api/email-campaigns/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const data = insertEmailCampaignSchema.parse(req.body);
+      const campaign = await storage.updateEmailCampaign(id, data);
+      if (!campaign) {
+        return res.status(404).json({ message: "Email campaign not found" });
+      }
+      res.json(campaign);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid email campaign data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update email campaign" });
+    }
+  });
+  
+  app.delete("/api/email-campaigns/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteEmailCampaign(id);
+      if (!success) {
+        return res.status(404).json({ message: "Email campaign not found" });
+      }
+      res.json({ message: "Email campaign deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete email campaign" });
+    }
+  });
+
+  // Email Campaign Recipients
+  app.get("/api/email-campaigns/:id/recipients", async (req, res) => {
+    try {
+      const campaignId = parseInt(req.params.id);
+      const recipients = await storage.getEmailCampaignRecipients(campaignId);
+      res.json(recipients);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get campaign recipients" });
+    }
+  });
+
+  app.post("/api/email-campaigns/:id/recipients/contact/:contactId", async (req, res) => {
+    try {
+      const campaignId = parseInt(req.params.id);
+      const contactId = parseInt(req.params.contactId);
+      
+      const recipient = await storage.addContactToEmailCampaign(campaignId, contactId);
+      res.status(201).json(recipient);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to add contact to campaign" });
+    }
+  });
+
+  app.post("/api/email-campaigns/:id/recipients/list/:listId", async (req, res) => {
+    try {
+      const campaignId = parseInt(req.params.id);
+      const listId = parseInt(req.params.listId);
+      
+      const recipients = await storage.addContactListToEmailCampaign(campaignId, listId);
+      res.status(201).json(recipients);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to add list to campaign" });
+    }
+  });
+
+  // Email Sending Endpoints
+  app.post("/api/email-campaigns/:id/send", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      // Import the service dynamically to avoid circular dependencies
+      const { sendEmailCampaign } = await import('./services/emailService');
+      
+      const success = await sendEmailCampaign(id);
+      
+      if (success) {
+        res.json({ message: "Email campaign sent successfully" });
+      } else {
+        res.status(500).json({ message: "Failed to send email campaign" });
+      }
+    } catch (error) {
+      console.error("Error sending campaign emails:", error);
+      res.status(500).json({ message: "Failed to send email campaign" });
+    }
+  });
+
+  app.post("/api/quotations/:id/send-email", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      
+      // Import the service dynamically to avoid circular dependencies
+      const { sendQuotationEmail } = await import('./services/emailService');
+      
+      const success = await sendQuotationEmail(id);
+      
+      if (success) {
+        res.json({ message: "Quotation email sent successfully" });
+      } else {
+        res.status(500).json({ message: "Failed to send quotation email" });
+      }
+    } catch (error) {
+      console.error("Error sending quotation email:", error);
+      res.status(500).json({ message: "Failed to send quotation email" });
+    }
+  });
+
+  app.post("/api/lists/:id/send-email", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { subject, body, fromName, fromEmail } = req.body;
+      
+      if (!subject || !body || !fromName || !fromEmail) {
+        return res.status(400).json({ message: "Missing required email parameters" });
+      }
+      
+      // Import the service dynamically to avoid circular dependencies
+      const { sendEmailToList } = await import('./services/emailService');
+      
+      const success = await sendEmailToList(id, subject, body, fromName, fromEmail);
+      
+      if (success) {
+        res.json({ message: "List emails sent successfully" });
+      } else {
+        res.status(500).json({ message: "Failed to send list emails" });
+      }
+    } catch (error) {
+      console.error("Error sending list emails:", error);
+      res.status(500).json({ message: "Failed to send list emails" });
     }
   });
 

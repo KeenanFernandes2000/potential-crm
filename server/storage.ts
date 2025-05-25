@@ -156,6 +156,9 @@ export class MemStorage implements IStorage {
   private formsMap: Map<number, Form>;
   private quotationsMap: Map<number, Quotation>;
   private quotationTemplatesMap: Map<number, QuotationTemplate>;
+  private emailTemplatesMap: Map<number, EmailTemplate>;
+  private emailCampaignsMap: Map<number, EmailCampaign>;
+  private emailCampaignRecipientsMap: Map<number, EmailCampaignRecipient[]>;
   
   private userIdCounter: number;
   private contactIdCounter: number;
@@ -167,6 +170,9 @@ export class MemStorage implements IStorage {
   private formIdCounter: number;
   private quotationIdCounter: number;
   private quotationTemplateIdCounter: number;
+  private emailTemplateIdCounter: number;
+  private emailCampaignIdCounter: number;
+  private emailCampaignRecipientIdCounter: number;
 
   constructor() {
     this.usersMap = new Map();
