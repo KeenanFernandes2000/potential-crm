@@ -20,6 +20,11 @@ const createDynamicSchema = (fields: any[]) => {
   const schemaMap: Record<string, any> = {};
   
   fields.forEach(field => {
+    // Skip if field is null or undefined or doesn't have a name property
+    if (!field || typeof field !== 'object' || !field.name) {
+      return;
+    }
+    
     const { name, type, required, options } = field;
     
     let fieldSchema: any = z.string();
@@ -41,7 +46,9 @@ const createDynamicSchema = (fields: any[]) => {
       case 'radio':
         if (options && options.length > 0) {
           const validOptions = options.map((opt: any) => opt.value);
-          fieldSchema = z.enum(validOptions as [string, ...string[]]);
+          if (validOptions.length > 0) {
+            fieldSchema = z.enum(validOptions as [string, ...string[]]);
+          }
         }
         break;
       case 'textarea':
@@ -70,7 +77,7 @@ const EmbedForm = () => {
   const [submitError, setSubmitError] = useState("");
   
   // Get form data
-  const { data: formData, isLoading } = useQuery({
+  const { data: formData, isLoading, error } = useQuery({
     queryKey: [`/api/forms/${formId}`],
     enabled: !isNaN(formId),
     retry: 1,
@@ -85,21 +92,31 @@ const EmbedForm = () => {
   // Create dynamic schema when form data is loaded
   useEffect(() => {
     if (formData && formData.fields && Array.isArray(formData.fields)) {
-      // Create Zod schema based on form fields
-      const schema = createDynamicSchema(formData.fields);
-      setDynamicSchema(schema);
-      
-      // Reset form with default values
-      const defaultValues: Record<string, any> = {};
-      formData.fields.forEach((field: any) => {
-        if (field.type === 'checkbox') {
-          defaultValues[field.name] = false;
-        } else {
-          defaultValues[field.name] = '';
-        }
-      });
-      
-      form.reset(defaultValues);
+      try {
+        // Create Zod schema based on form fields
+        const schema = createDynamicSchema(formData.fields);
+        setDynamicSchema(schema);
+        
+        // Reset form with default values
+        const defaultValues: Record<string, any> = {};
+        formData.fields.forEach((field: any) => {
+          // Skip if field is null or undefined or doesn't have a name property
+          if (!field || typeof field !== 'object' || !field.name) {
+            return;
+          }
+          
+          if (field.type === 'checkbox') {
+            defaultValues[field.name] = false;
+          } else {
+            defaultValues[field.name] = '';
+          }
+        });
+        
+        form.reset(defaultValues);
+      } catch (err) {
+        console.error("Error setting up form:", err);
+        setSubmitError("There was an error loading the form. Please try again later.");
+      }
     }
   }, [formData, form]);
   
@@ -131,14 +148,14 @@ const EmbedForm = () => {
     );
   }
   
-  if (!formData) {
+  if (error || !formData) {
     return (
       <div className="p-6 max-w-md mx-auto bg-white dark:bg-gray-800 rounded-lg shadow-md">
         <Alert variant="destructive">
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Error</AlertTitle>
           <AlertDescription>
-            Form not found. Please check the form ID and try again.
+            Form not found or could not be loaded. Please check the form ID and try again.
           </AlertDescription>
         </Alert>
       </div>
@@ -182,136 +199,143 @@ const EmbedForm = () => {
       
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          {formData.fields && formData.fields.map((field: any) => (
-            <div key={field.name} className="space-y-2">
-              {field.type === 'checkbox' ? (
-                <FormField
-                  control={form.control}
-                  name={field.name}
-                  render={({ field: formField }) => (
-                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                      <FormControl>
-                        <Checkbox
-                          checked={formField.value}
-                          onCheckedChange={formField.onChange}
-                        />
-                      </FormControl>
-                      <div className="space-y-1 leading-none">
-                        <FormLabel>{field.label}</FormLabel>
+          {formData.fields && Array.isArray(formData.fields) && formData.fields.map((field: any, index: number) => {
+            // Skip if field is null or undefined or doesn't have a name property
+            if (!field || typeof field !== 'object' || !field.name) {
+              return null;
+            }
+            
+            return (
+              <div key={field.name || `field-${index}`} className="space-y-2">
+                {field.type === 'checkbox' ? (
+                  <FormField
+                    control={form.control}
+                    name={field.name}
+                    render={({ field: formField }) => (
+                      <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                        <FormControl>
+                          <Checkbox
+                            checked={formField.value}
+                            onCheckedChange={formField.onChange}
+                          />
+                        </FormControl>
+                        <div className="space-y-1 leading-none">
+                          <FormLabel>{field.label || field.name}</FormLabel>
+                          {field.helpText && (
+                            <FormDescription>{field.helpText}</FormDescription>
+                          )}
+                        </div>
+                      </FormItem>
+                    )}
+                  />
+                ) : field.type === 'select' ? (
+                  <FormField
+                    control={form.control}
+                    name={field.name}
+                    render={({ field: formField }) => (
+                      <FormItem>
+                        <FormLabel>{field.label || field.name}</FormLabel>
+                        <Select 
+                          onValueChange={formField.onChange} 
+                          defaultValue={formField.value}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select an option" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {field.options && Array.isArray(field.options) && field.options.map((option: any, optIndex: number) => (
+                              <SelectItem key={option.value || `option-${optIndex}`} value={option.value || ''}>
+                                {option.label || option.value || `Option ${optIndex + 1}`}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         {field.helpText && (
                           <FormDescription>{field.helpText}</FormDescription>
                         )}
-                      </div>
-                    </FormItem>
-                  )}
-                />
-              ) : field.type === 'select' ? (
-                <FormField
-                  control={form.control}
-                  name={field.name}
-                  render={({ field: formField }) => (
-                    <FormItem>
-                      <FormLabel>{field.label}</FormLabel>
-                      <Select 
-                        onValueChange={formField.onChange} 
-                        defaultValue={formField.value}
-                      >
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                ) : field.type === 'radio' ? (
+                  <FormField
+                    control={form.control}
+                    name={field.name}
+                    render={({ field: formField }) => (
+                      <FormItem className="space-y-3">
+                        <FormLabel>{field.label || field.name}</FormLabel>
                         <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select an option" />
-                          </SelectTrigger>
+                          <RadioGroup
+                            onValueChange={formField.onChange}
+                            defaultValue={formField.value}
+                            className="flex flex-col space-y-1"
+                          >
+                            {field.options && Array.isArray(field.options) && field.options.map((option: any, optIndex: number) => (
+                              <FormItem className="flex items-center space-x-3 space-y-0" key={option.value || `option-${optIndex}`}>
+                                <FormControl>
+                                  <RadioGroupItem value={option.value || ''} />
+                                </FormControl>
+                                <FormLabel className="font-normal">
+                                  {option.label || option.value || `Option ${optIndex + 1}`}
+                                </FormLabel>
+                              </FormItem>
+                            ))}
+                          </RadioGroup>
                         </FormControl>
-                        <SelectContent>
-                          {field.options && field.options.map((option: any) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {field.helpText && (
-                        <FormDescription>{field.helpText}</FormDescription>
-                      )}
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              ) : field.type === 'radio' ? (
-                <FormField
-                  control={form.control}
-                  name={field.name}
-                  render={({ field: formField }) => (
-                    <FormItem className="space-y-3">
-                      <FormLabel>{field.label}</FormLabel>
-                      <FormControl>
-                        <RadioGroup
-                          onValueChange={formField.onChange}
-                          defaultValue={formField.value}
-                          className="flex flex-col space-y-1"
-                        >
-                          {field.options && field.options.map((option: any) => (
-                            <FormItem className="flex items-center space-x-3 space-y-0" key={option.value}>
-                              <FormControl>
-                                <RadioGroupItem value={option.value} />
-                              </FormControl>
-                              <FormLabel className="font-normal">
-                                {option.label}
-                              </FormLabel>
-                            </FormItem>
-                          ))}
-                        </RadioGroup>
-                      </FormControl>
-                      {field.helpText && (
-                        <FormDescription>{field.helpText}</FormDescription>
-                      )}
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              ) : field.type === 'textarea' ? (
-                <FormField
-                  control={form.control}
-                  name={field.name}
-                  render={({ field: formField }) => (
-                    <FormItem>
-                      <FormLabel>{field.label}</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder={field.placeholder || ''}
-                          {...formField}
-                        />
-                      </FormControl>
-                      {field.helpText && (
-                        <FormDescription>{field.helpText}</FormDescription>
-                      )}
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              ) : (
-                <FormField
-                  control={form.control}
-                  name={field.name}
-                  render={({ field: formField }) => (
-                    <FormItem>
-                      <FormLabel>{field.label}</FormLabel>
-                      <FormControl>
-                        <Input
-                          type={field.type || 'text'}
-                          placeholder={field.placeholder || ''}
-                          {...formField}
-                        />
-                      </FormControl>
-                      {field.helpText && (
-                        <FormDescription>{field.helpText}</FormDescription>
-                      )}
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-            </div>
-          ))}
+                        {field.helpText && (
+                          <FormDescription>{field.helpText}</FormDescription>
+                        )}
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                ) : field.type === 'textarea' ? (
+                  <FormField
+                    control={form.control}
+                    name={field.name}
+                    render={({ field: formField }) => (
+                      <FormItem>
+                        <FormLabel>{field.label || field.name}</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder={field.placeholder || ''}
+                            {...formField}
+                          />
+                        </FormControl>
+                        {field.helpText && (
+                          <FormDescription>{field.helpText}</FormDescription>
+                        )}
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                ) : (
+                  <FormField
+                    control={form.control}
+                    name={field.name}
+                    render={({ field: formField }) => (
+                      <FormItem>
+                        <FormLabel>{field.label || field.name}</FormLabel>
+                        <FormControl>
+                          <Input
+                            type={field.type || 'text'}
+                            placeholder={field.placeholder || ''}
+                            {...formField}
+                          />
+                        </FormControl>
+                        {field.helpText && (
+                          <FormDescription>{field.helpText}</FormDescription>
+                        )}
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </div>
+            );
+          })}
           
           <Button 
             type="submit" 
