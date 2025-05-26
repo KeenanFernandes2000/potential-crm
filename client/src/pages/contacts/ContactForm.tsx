@@ -330,46 +330,44 @@ const ContactForm = ({ contact, onClose }: ContactFormProps) => {
               )}
             />
             
-            {/* Company selection field that appears when leadType is selected */}
-            {watchLeadType && ["Customer", "Partner", "Vendor", "Investor"].includes(watchLeadType) && (
-              <FormField
-                control={form.control}
-                name="companyId"
-                render={({ field }) => (
-                  <FormItem className="col-span-2">
-                    <FormLabel>{watchLeadType} Company</FormLabel>
-                    <div className="flex gap-2 items-center">
-                      <Select
-                        value={field.value ? field.value.toString() : ""}
-                        onValueChange={(value) => field.onChange(value ? parseInt(value) : null)}
-                      >
-                        <FormControl>
-                          <SelectTrigger className="flex-1">
-                            <SelectValue placeholder={`Select or create ${watchLeadType.toLowerCase()}`} />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {companies?.map((company) => (
-                            <SelectItem key={company.id} value={company.id.toString()}>
-                              {company.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        size="icon"
-                        onClick={() => setShowCompanyDialog(true)}
-                      >
-                        <Plus className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
+            {/* Company selection field */}
+            <FormField
+              control={form.control}
+              name="companyId"
+              render={({ field }) => (
+                <FormItem className="col-span-2">
+                  <FormLabel>Company</FormLabel>
+                  <div className="flex gap-2 items-center">
+                    <Select
+                      value={field.value ? field.value.toString() : ""}
+                      onValueChange={(value) => field.onChange(value ? parseInt(value) : null)}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="flex-1">
+                          <SelectValue placeholder="Select or create company" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {companies?.map((company) => (
+                          <SelectItem key={company.id} value={company.id.toString()}>
+                            {company.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="icon"
+                      onClick={() => setShowCompanyDialog(true)}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}
