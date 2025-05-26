@@ -279,10 +279,9 @@ const DealForm = ({ deal, onClose }: DealFormProps) => {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {/* This would show actual contact names in a real app */}
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <SelectItem key={i} value={(i + 1).toString()}>
-                          Contact {i + 1}
+                      {contacts?.map((contact) => (
+                        <SelectItem key={contact.id} value={contact.id.toString()}>
+                          {contact.firstName} {contact.lastName} {contact.email ? `- ${contact.email}` : ''}
                         </SelectItem>
                       ))}
                     </SelectContent>
