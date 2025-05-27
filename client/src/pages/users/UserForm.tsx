@@ -187,6 +187,7 @@ const UserForm = ({ user, onClose }: UserFormProps) => {
                   <SelectContent>
                     <SelectItem value="user">User</SelectItem>
                     <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="partner">Partner</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
