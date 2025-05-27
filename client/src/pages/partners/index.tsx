@@ -154,16 +154,22 @@ export default function PartnersPage() {
                 </div>
               )}
               
-              {partner.company && (
+              {partner.contactPerson && (
                 <div className="flex items-center text-sm">
                   <Building2 className="h-3 w-3 mr-1" />
-                  <span className="font-medium">Company:</span>
-                  <span className="ml-1">{partner.company}</span>
+                  <span className="font-medium">Contact:</span>
+                  <span className="ml-1">{partner.contactPerson}</span>
                 </div>
               )}
 
-              {partner.type && (
-                <Badge variant="secondary">{partner.type}</Badge>
+              {partner.industry && (
+                <div className="text-sm">
+                  <span className="font-medium">Industry:</span> {partner.industry}
+                </div>
+              )}
+
+              {partner.partnerType && (
+                <Badge variant="secondary">{partner.partnerType}</Badge>
               )}
 
               {partner.status && (

@@ -8,6 +8,7 @@ import MainLayout from "@/layout/MainLayout";
 import Dashboard from "@/pages/dashboard";
 import Contacts from "@/pages/contacts";
 import Companies from "@/pages/companies";
+import Partners from "@/pages/partners";
 import Deals from "@/pages/deals";
 import Lists from "@/pages/lists";
 import Forms from "@/pages/forms";
@@ -44,6 +45,7 @@ function ProtectedRoutes() {
       <Route path="/" component={Dashboard} />
       <Route path="/contacts" component={Contacts} />
       <Route path="/companies" component={Companies} />
+      <Route path="/partners" component={Partners} />
       <Route path="/deals" component={Deals} />
       <Route path="/quotations" component={Quotations} />
       <Route path="/lists" component={Lists} />
