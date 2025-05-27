@@ -1,10 +1,10 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Company, insertCompanySchema } from "@shared/schema";
+import { Company, insertCompanySchema, Partner } from "@shared/schema";
 
 import {
   Form,
@@ -42,6 +42,11 @@ const CompanyForm = ({ company, onClose }: CompanyFormProps) => {
   const { toast } = useToast();
   const isEditing = !!company;
 
+  // Fetch partners for dropdown
+  const { data: partners = [] } = useQuery<Partner[]>({
+    queryKey: ["/api/partners"],
+  });
+
   const defaultValues: Partial<CompanyFormValues> = {
     name: company?.name || "",
     website: company?.website || "",
@@ -50,6 +55,7 @@ const CompanyForm = ({ company, onClose }: CompanyFormProps) => {
     country: company?.country || "",
     notes: company?.notes || "",
     tags: company?.tags || [],
+    partnerId: company?.partnerId || null,
   };
 
   const form = useForm<CompanyFormValues>({
@@ -242,6 +248,35 @@ const CompanyForm = ({ company, onClose }: CompanyFormProps) => {
               )}
             />
           </div>
+
+          <FormField
+            control={form.control}
+            name="partnerId"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Partner</FormLabel>
+                <Select
+                  value={field.value ? String(field.value) : ""}
+                  onValueChange={(value) => field.onChange(value === "" ? null : parseInt(value))}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a partner" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="">Direct</SelectItem>
+                    {partners.map((partner) => (
+                      <SelectItem key={partner.id} value={String(partner.id)}>
+                        {partner.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
           <FormField
             control={form.control}
