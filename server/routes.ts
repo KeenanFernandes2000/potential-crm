@@ -455,7 +455,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Deal creation request body:", JSON.stringify(req.body, null, 2));
       const data = insertDealSchema.parse(req.body);
       console.log("Parsed deal data:", JSON.stringify(data, null, 2));
-      const deal = await storage.createDeal(data);
+      
+      // Convert string dates to Date objects for database
+      const dealData = {
+        ...data,
+        startDate: data.startDate ? new Date(data.startDate) : null,
+        expiryDate: data.expiryDate ? new Date(data.expiryDate) : null,
+      };
+      
+      const deal = await storage.createDeal(dealData);
       res.status(201).json(deal);
     } catch (error) {
       console.error("Deal creation error:", error);
