@@ -255,6 +255,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const companies = await storage.getCompanies();
       res.json(companies);
     } catch (error) {
+      console.error("Get companies error:", error);
       res.status(500).json({ message: "Failed to get companies" });
     }
   });
@@ -278,6 +279,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const company = await storage.createCompany(data);
       res.status(201).json(company);
     } catch (error) {
+      console.error("Create company error:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid company data", errors: error.errors });
       }
