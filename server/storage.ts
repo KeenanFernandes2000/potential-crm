@@ -1326,5 +1326,7 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
+import { DatabaseStorage as CleanDatabaseStorage } from "./database-storage-clean";
+
 // Get the right storage based on environment
-export const storage = new DatabaseStorage();
+export const storage = new CleanDatabaseStorage();
