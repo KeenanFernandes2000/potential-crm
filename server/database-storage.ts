@@ -21,7 +21,7 @@ import {
   type EmailCampaignRecipient, type InsertEmailCampaignRecipient
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 import { IStorage } from "./storage";
 
 export class DatabaseStorage implements IStorage {
@@ -391,13 +391,41 @@ export class DatabaseStorage implements IStorage {
 
   // Dashboard
   async getDashboardStats(): Promise<any> {
-    // In a real implementation, this would use aggregation queries
-    // For now, we'll just return static data as a placeholder
+    // Calculate real statistics from database
+    const allContacts = await db.select().from(contacts);
+    const allDeals = await db.select().from(deals);
+    
+    const totalLeads = allContacts.length;
+    const totalDealsCount = allDeals.length;
+    
+    // Count open deals (not closed)
+    const openDealsCount = allDeals.filter(deal => 
+      deal.stage && !['Closed Won', 'Closed Lost'].includes(deal.stage)
+    ).length;
+    
+    // Count closed won deals
+    const closedWonDeals = allDeals.filter(deal => deal.stage === 'Closed Won');
+    const closedWonCount = closedWonDeals.length;
+    
+    // Calculate total revenue from closed won deals
+    const revenue = closedWonDeals.reduce((sum, deal) => sum + (deal.value || 0), 0);
+    
+    // Calculate conversion rate (closed won / total deals)
+    const conversionRate = totalDealsCount > 0 ? ((closedWonCount / totalDealsCount) * 100).toFixed(1) : "0";
+    
+    // Format revenue
+    const formattedRevenue = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(revenue);
+
     return {
-      totalLeads: 1482,
-      openDeals: 64,
-      revenue: "$89,421",
-      conversionRate: "24.8%"
+      totalLeads,
+      openDeals: openDealsCount,
+      revenue: formattedRevenue,
+      conversionRate: `${conversionRate}%`
     };
   }
 

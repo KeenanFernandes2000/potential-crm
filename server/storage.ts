@@ -904,20 +904,41 @@ export class MemStorage implements IStorage {
 
   // Dashboard
   async getDashboardStats(): Promise<any> {
-    // In a real application, this would be calculated from real data
+    // Calculate real statistics from in-memory data
+    const allContacts = Array.from(this.contactsMap.values());
+    const allDeals = Array.from(this.dealsMap.values());
+    
+    const totalLeads = allContacts.length;
+    const totalDealsCount = allDeals.length;
+    
+    // Count open deals (not closed)
+    const openDealsCount = allDeals.filter(deal => 
+      deal.stage && !['Closed Won', 'Closed Lost'].includes(deal.stage)
+    ).length;
+    
+    // Count closed won deals
+    const closedWonDeals = allDeals.filter(deal => deal.stage === 'Closed Won');
+    const closedWonCount = closedWonDeals.length;
+    
+    // Calculate total revenue from closed won deals
+    const revenue = closedWonDeals.reduce((sum, deal) => sum + (deal.value || 0), 0);
+    
+    // Calculate conversion rate (closed won / total deals)
+    const conversionRate = totalDealsCount > 0 ? ((closedWonCount / totalDealsCount) * 100).toFixed(1) : "0";
+    
+    // Format revenue
+    const formattedRevenue = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(revenue);
+
     return {
-      totalLeads: 1482,
-      openDeals: 64,
-      revenue: "$89,421",
-      conversionRate: "24.8%",
-      topSources: [
-        { source: "Website", count: 534 },
-        { source: "Referral", count: 392 },
-        { source: "Social Media", count: 287 },
-        { source: "Email", count: 164 },
-        { source: "Event", count: 105 }
-      ],
-      recentActivities: []
+      totalLeads,
+      openDeals: openDealsCount,
+      revenue: formattedRevenue,
+      conversionRate: `${conversionRate}%`
     };
   }
   
