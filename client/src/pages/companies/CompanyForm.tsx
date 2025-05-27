@@ -256,8 +256,8 @@ const CompanyForm = ({ company, onClose }: CompanyFormProps) => {
               <FormItem>
                 <FormLabel>Partner</FormLabel>
                 <Select
-                  value={field.value ? String(field.value) : ""}
-                  onValueChange={(value) => field.onChange(value === "" ? null : parseInt(value))}
+                  value={field.value ? String(field.value) : "direct"}
+                  onValueChange={(value) => field.onChange(value === "direct" ? null : parseInt(value))}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -265,7 +265,7 @@ const CompanyForm = ({ company, onClose }: CompanyFormProps) => {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="">Direct</SelectItem>
+                    <SelectItem value="direct">Direct</SelectItem>
                     {partners.map((partner) => (
                       <SelectItem key={partner.id} value={String(partner.id)}>
                         {partner.name}
