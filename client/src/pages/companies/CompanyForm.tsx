@@ -120,14 +120,10 @@ const CompanyForm = ({ company, onClose }: CompanyFormProps) => {
 
   return (
     <div className="flex flex-col max-h-[80vh]">
-      <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between flex-shrink-0">
+      <div className="border-b border-gray-200 px-6 py-4 flex-shrink-0">
         <h3 className="text-lg font-semibold">
           {isEditing ? "Edit Company" : "Add New Company"}
         </h3>
-        <Button variant="ghost" size="icon" onClick={onClose}>
-          <X className="h-5 w-5" />
-          <span className="sr-only">Close</span>
-        </Button>
       </div>
 
       <Form {...form}>
