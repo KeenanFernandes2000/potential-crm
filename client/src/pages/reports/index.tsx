@@ -68,32 +68,45 @@ const Reports = () => {
                   </div>
                 ) : (
                   <ResponsiveContainer width="100%" height="100%">
-                    <FunnelChart>
-                      <Tooltip 
-                        formatter={(value, name, props) => {
-                          if (name === "value") {
-                            return [props.payload.formattedValue, "Value"];
-                          }
-                          return [value, name];
-                        }}
+                    <BarChart 
+                      data={dealsByStage.filter(item => item.value > 0)}
+                      layout="horizontal"
+                      margin={{ top: 20, right: 120, left: 80, bottom: 20 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis 
+                        type="number" 
+                        tickFormatter={(value) => new Intl.NumberFormat('en-US', {
+                          style: 'currency',
+                          currency: 'USD',
+                          minimumFractionDigits: 0,
+                          maximumFractionDigits: 0,
+                          notation: 'compact'
+                        }).format(value)}
                       />
-                      <Funnel
-                        dataKey="value"
-                        data={dealsByStage}
-                        nameKey="stage"
-                        isAnimationActive
+                      <YAxis type="category" dataKey="stage" width={80} />
+                      <Tooltip 
+                        formatter={(value) => [
+                          new Intl.NumberFormat('en-US', {
+                            style: 'currency',
+                            currency: 'USD',
+                            minimumFractionDigits: 0,
+                            maximumFractionDigits: 0
+                          }).format(value as number),
+                          "Deal Value"
+                        ]}
+                      />
+                      <Bar 
+                        dataKey="value" 
+                        fill="#3b82f6"
+                        name="Deal Value"
+                        radius={[0, 4, 4, 0]}
                       >
-                        <LabelList
-                          position="right"
-                          fill="#000"
-                          stroke="none"
-                          dataKey="formattedValue"
-                        />
                         {dealsByStage.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
-                      </Funnel>
-                    </FunnelChart>
+                      </Bar>
+                    </BarChart>
                   </ResponsiveContainer>
                 )}
               </div>
