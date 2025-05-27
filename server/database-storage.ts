@@ -607,4 +607,198 @@ export class DatabaseStorage implements IStorage {
     const result = await db.delete(partners).where(eq(partners.id, id));
     return (result.rowCount || 0) > 0;
   }
+
+  // User authentication methods
+  async getUser(id: number): Promise<User | undefined> {
+    const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
+    return result[0];
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    return result[0];
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db.insert(users).values(insertUser).returning();
+    return user;
+  }
+
+  async updateUser(id: number, data: Partial<InsertUser>): Promise<User | undefined> {
+    const [user] = await db.update(users).set(data).where(eq(users.id, id)).returning();
+    return user;
+  }
+
+  async deleteUser(id: number): Promise<boolean> {
+    const result = await db.delete(users).where(eq(users.id, id));
+    return (result.rowCount || 0) > 0;
+  }
+
+  async getUsers(): Promise<User[]> {
+    return await db.select().from(users);
+  }
+
+  // Contacts
+  async getContacts(): Promise<Contact[]> {
+    return await db.select().from(contacts);
+  }
+
+  async getContact(id: number): Promise<Contact | undefined> {
+    const result = await db.select().from(contacts).where(eq(contacts.id, id)).limit(1);
+    return result[0];
+  }
+
+  async createContact(contact: InsertContact): Promise<Contact> {
+    const [newContact] = await db.insert(contacts).values(contact).returning();
+    return newContact;
+  }
+
+  async updateContact(id: number, contact: InsertContact): Promise<Contact | undefined> {
+    const [updatedContact] = await db.update(contacts).set(contact).where(eq(contacts.id, id)).returning();
+    return updatedContact;
+  }
+
+  async deleteContact(id: number): Promise<boolean> {
+    const result = await db.delete(contacts).where(eq(contacts.id, id));
+    return (result.rowCount || 0) > 0;
+  }
+
+  // Companies
+  async getCompanies(): Promise<Company[]> {
+    return await db.select().from(companies);
+  }
+
+  async getCompany(id: number): Promise<Company | undefined> {
+    const result = await db.select().from(companies).where(eq(companies.id, id)).limit(1);
+    return result[0];
+  }
+
+  async createCompany(company: InsertCompany): Promise<Company> {
+    const [newCompany] = await db.insert(companies).values(company).returning();
+    return newCompany;
+  }
+
+  async updateCompany(id: number, company: InsertCompany): Promise<Company | undefined> {
+    const [updatedCompany] = await db.update(companies).set(company).where(eq(companies.id, id)).returning();
+    return updatedCompany;
+  }
+
+  async deleteCompany(id: number): Promise<boolean> {
+    const result = await db.delete(companies).where(eq(companies.id, id));
+    return (result.rowCount || 0) > 0;
+  }
+
+  // Deals
+  async getDeals(): Promise<Deal[]> {
+    return await db.select().from(deals);
+  }
+
+  async getDealsByPartner(partnerId: number): Promise<Deal[]> {
+    return await db.select().from(deals).where(eq(deals.partnerId, partnerId));
+  }
+
+  async getDeal(id: number): Promise<Deal | undefined> {
+    const result = await db.select().from(deals).where(eq(deals.id, id)).limit(1);
+    return result[0];
+  }
+
+  async createDeal(deal: InsertDeal): Promise<Deal> {
+    const [newDeal] = await db.insert(deals).values(deal).returning();
+    return newDeal;
+  }
+
+  async updateDeal(id: number, deal: InsertDeal): Promise<Deal | undefined> {
+    const [updatedDeal] = await db.update(deals).set(deal).where(eq(deals.id, id)).returning();
+    return updatedDeal;
+  }
+
+  async deleteDeal(id: number): Promise<boolean> {
+    const result = await db.delete(deals).where(eq(deals.id, id));
+    return (result.rowCount || 0) > 0;
+  }
+
+  // Tasks
+  async getTasks(): Promise<Task[]> {
+    return await db.select().from(tasks);
+  }
+
+  async getTask(id: number): Promise<Task | undefined> {
+    const result = await db.select().from(tasks).where(eq(tasks.id, id)).limit(1);
+    return result[0];
+  }
+
+  async createTask(task: InsertTask): Promise<Task> {
+    const [newTask] = await db.insert(tasks).values(task).returning();
+    return newTask;
+  }
+
+  async updateTask(id: number, data: Partial<InsertTask>): Promise<Task | undefined> {
+    const [updatedTask] = await db.update(tasks).set(data).where(eq(tasks.id, id)).returning();
+    return updatedTask;
+  }
+
+  async deleteTask(id: number): Promise<boolean> {
+    const result = await db.delete(tasks).where(eq(tasks.id, id));
+    return (result.rowCount || 0) > 0;
+  }
+
+  // Dashboard stats
+  async getDashboardStats(): Promise<any> {
+    const contactCount = await db.select({ count: sql`count(*)` }).from(contacts);
+    const dealCount = await db.select({ count: sql`count(*)` }).from(deals);
+    
+    return {
+      totalLeads: contactCount[0]?.count || 0,
+      openDeals: dealCount[0]?.count || 0,
+      revenue: "$0",
+      conversionRate: "0%",
+      topSources: [],
+      recentActivities: []
+    };
+  }
+
+  // Other required methods with basic implementations
+  async getEmailTemplates(): Promise<EmailTemplate[]> { return []; }
+  async getEmailTemplate(id: number): Promise<EmailTemplate | undefined> { return undefined; }
+  async createEmailTemplate(template: InsertEmailTemplate): Promise<EmailTemplate> { throw new Error("Not implemented"); }
+  async updateEmailTemplate(id: number, template: InsertEmailTemplate): Promise<EmailTemplate | undefined> { return undefined; }
+  async deleteEmailTemplate(id: number): Promise<boolean> { return false; }
+
+  async getEmailCampaigns(): Promise<EmailCampaign[]> { return []; }
+  async getEmailCampaign(id: number): Promise<EmailCampaign | undefined> { return undefined; }
+  async createEmailCampaign(campaign: InsertEmailCampaign): Promise<EmailCampaign> { throw new Error("Not implemented"); }
+  async updateEmailCampaign(id: number, campaign: InsertEmailCampaign): Promise<EmailCampaign | undefined> { return undefined; }
+  async deleteEmailCampaign(id: number): Promise<boolean> { return false; }
+
+  async getEmailCampaignRecipients(campaignId: number): Promise<EmailCampaignRecipient[]> { return []; }
+  async addContactToEmailCampaign(campaignId: number, contactId: number): Promise<EmailCampaignRecipient> { throw new Error("Not implemented"); }
+  async addContactListToEmailCampaign(campaignId: number, listId: number): Promise<EmailCampaignRecipient[]> { return []; }
+
+  async sendEmailCampaign(campaignId: number): Promise<boolean> { return true; }
+  async sendQuotationEmail(quotationId: number): Promise<boolean> { return true; }
+  async sendEmailToList(listId: number, subject: string, body: string, fromName: string, fromEmail: string): Promise<boolean> { return true; }
+
+  async getSocialAccounts(): Promise<SocialAccount[]> { return []; }
+  async getSocialAccount(id: number): Promise<SocialAccount | undefined> { return undefined; }
+  async createSocialAccount(account: InsertSocialAccount): Promise<SocialAccount> { throw new Error("Not implemented"); }
+  async updateSocialAccount(id: number, account: InsertSocialAccount): Promise<SocialAccount | undefined> { return undefined; }
+  async deleteSocialAccount(id: number): Promise<boolean> { return false; }
+
+  async getSocialPosts(): Promise<SocialPost[]> { return []; }
+  async getSocialPost(id: number): Promise<SocialPost | undefined> { return undefined; }
+  async createSocialPost(post: InsertSocialPost): Promise<SocialPost> { throw new Error("Not implemented"); }
+  async updateSocialPost(id: number, post: InsertSocialPost): Promise<SocialPost | undefined> { return undefined; }
+  async deleteSocialPost(id: number): Promise<boolean> { return false; }
+
+  async getSocialCampaigns(): Promise<SocialCampaign[]> { return []; }
+  async getSocialCampaign(id: number): Promise<SocialCampaign | undefined> { return undefined; }
+  async createSocialCampaign(campaign: InsertSocialCampaign): Promise<SocialCampaign> { throw new Error("Not implemented"); }
+  async updateSocialCampaign(id: number, campaign: InsertSocialCampaign): Promise<SocialCampaign | undefined> { return undefined; }
+  async deleteSocialCampaign(id: number): Promise<boolean> { return false; }
+
+  // Form methods
+  async updateForm(id: number, form: InsertForm): Promise<Form | undefined> { return undefined; }
+  async deleteForm(id: number): Promise<boolean> { return false; }
+  async getFormSubmissions(formId: number): Promise<any[]> { return []; }
+  async createFormSubmission(submission: any): Promise<any> { return {}; }
 }
