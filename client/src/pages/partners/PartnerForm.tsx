@@ -46,7 +46,8 @@ export default function PartnerForm({ partner, onSuccess, onCancel }: PartnerFor
       });
       
       if (!response.ok) {
-        throw new Error("Failed to create partner");
+        const errorText = await response.text();
+        throw new Error(`Failed to create partner: ${errorText}`);
       }
       
       return response.json();
@@ -59,10 +60,11 @@ export default function PartnerForm({ partner, onSuccess, onCancel }: PartnerFor
       });
       onSuccess();
     },
-    onError: () => {
+    onError: (error) => {
+      console.error("Create partner error:", error);
       toast({
         title: "Error",
-        description: "Failed to create partner",
+        description: error.message || "Failed to create partner",
         variant: "destructive",
       });
     },
