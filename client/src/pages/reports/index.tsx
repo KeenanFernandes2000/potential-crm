@@ -67,47 +67,34 @@ const Reports = () => {
                     <p>No deals data available. Add some deals to see the funnel.</p>
                   </div>
                 ) : (
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart 
-                      data={dealsByStage.filter(item => item.value > 0)}
-                      layout="horizontal"
-                      margin={{ top: 20, right: 120, left: 80, bottom: 20 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis 
-                        type="number" 
-                        tickFormatter={(value) => new Intl.NumberFormat('en-US', {
-                          style: 'currency',
-                          currency: 'USD',
-                          minimumFractionDigits: 0,
-                          maximumFractionDigits: 0,
-                          notation: 'compact'
-                        }).format(value)}
-                      />
-                      <YAxis type="category" dataKey="stage" width={80} />
-                      <Tooltip 
-                        formatter={(value) => [
-                          new Intl.NumberFormat('en-US', {
-                            style: 'currency',
-                            currency: 'USD',
-                            minimumFractionDigits: 0,
-                            maximumFractionDigits: 0
-                          }).format(value as number),
-                          "Deal Value"
-                        ]}
-                      />
-                      <Bar 
-                        dataKey="value" 
-                        fill="#3b82f6"
-                        name="Deal Value"
-                        radius={[0, 4, 4, 0]}
-                      >
-                        {dealsByStage.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
+                  <div className="relative h-full flex flex-col justify-center items-center">
+                    {dealsByStage.filter(item => item.value > 0).map((stage, index) => {
+                      const maxValue = Math.max(...dealsByStage.map(s => s.value));
+                      const percentage = (stage.value / maxValue) * 100;
+                      const width = Math.max(percentage, 15); // Minimum 15% width for visibility
+                      
+                      return (
+                        <div key={stage.stage} className="relative w-full flex justify-center mb-2">
+                          <div 
+                            className="relative flex items-center justify-between px-6 py-4 text-white font-semibold"
+                            style={{
+                              width: `${width}%`,
+                              background: COLORS[index % COLORS.length],
+                              clipPath: index === 0 
+                                ? 'polygon(10% 0%, 90% 0%, 85% 100%, 15% 100%)' // Top trapezoid
+                                : index === dealsByStage.filter(item => item.value > 0).length - 1
+                                ? 'polygon(15% 0%, 85% 0%, 90% 100%, 10% 100%)' // Bottom trapezoid  
+                                : 'polygon(15% 0%, 85% 0%, 85% 100%, 15% 100%)', // Middle rectangle
+                              minHeight: '60px'
+                            }}
+                          >
+                            <span className="text-sm font-medium">{stage.stage}</span>
+                            <span className="text-sm font-bold">{stage.formattedValue}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
             </CardContent>
