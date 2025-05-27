@@ -1,7 +1,7 @@
 import { 
   users, contacts, companies, deals, tasks, activities, lists, forms, formSubmissions, listContacts,
   quotations, quotationTemplates, socialAccounts, socialPosts, socialCampaigns,
-  emailTemplates, emailCampaigns, emailCampaignRecipients,
+  emailTemplates, emailCampaigns, emailCampaignRecipients, partners,
   type User, type InsertUser, 
   type Contact, type InsertContact,
   type Company, type InsertCompany,
@@ -17,7 +17,8 @@ import {
   type SocialCampaign, type InsertSocialCampaign,
   type EmailTemplate, type InsertEmailTemplate,
   type EmailCampaign, type InsertEmailCampaign,
-  type EmailCampaignRecipient, type InsertEmailCampaignRecipient
+  type EmailCampaignRecipient, type InsertEmailCampaignRecipient,
+  type Partner, type InsertPartner
 } from "@shared/schema";
 
 // modify the interface with any CRUD methods
@@ -44,6 +45,13 @@ export interface IStorage {
   createCompany(company: InsertCompany): Promise<Company>;
   updateCompany(id: number, company: InsertCompany): Promise<Company | undefined>;
   deleteCompany(id: number): Promise<boolean>;
+
+  // Partners
+  getPartners(): Promise<Partner[]>;
+  getPartner(id: number): Promise<Partner | undefined>;
+  createPartner(partner: InsertPartner): Promise<Partner>;
+  updatePartner(id: number, partner: InsertPartner): Promise<Partner | undefined>;
+  deletePartner(id: number): Promise<boolean>;
 
   // Deals
   getDeals(): Promise<Deal[]>;
@@ -395,6 +403,50 @@ export class MemStorage implements IStorage {
 
   async deleteCompany(id: number): Promise<boolean> {
     return this.companiesMap.delete(id);
+  }
+
+  // Partners
+  private partnersMap = new Map<number, Partner>();
+  private partnerIdCounter = 1;
+
+  async getPartners(): Promise<Partner[]> {
+    return Array.from(this.partnersMap.values());
+  }
+
+  async getPartner(id: number): Promise<Partner | undefined> {
+    return this.partnersMap.get(id);
+  }
+
+  async createPartner(partner: InsertPartner): Promise<Partner> {
+    const id = this.partnerIdCounter++;
+    const now = new Date();
+    const newPartner: Partner = { 
+      ...partner, 
+      id, 
+      createdAt: now, 
+      updatedAt: now 
+    };
+    this.partnersMap.set(id, newPartner);
+    return newPartner;
+  }
+
+  async updatePartner(id: number, partner: InsertPartner): Promise<Partner | undefined> {
+    const existingPartner = this.partnersMap.get(id);
+    if (!existingPartner) {
+      return undefined;
+    }
+    const now = new Date();
+    const updatedPartner: Partner = { 
+      ...existingPartner, 
+      ...partner, 
+      updatedAt: now 
+    };
+    this.partnersMap.set(id, updatedPartner);
+    return updatedPartner;
+  }
+
+  async deletePartner(id: number): Promise<boolean> {
+    return this.partnersMap.delete(id);
   }
 
   // Deals

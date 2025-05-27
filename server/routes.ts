@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
-import { insertContactSchema, insertCompanySchema, insertDealSchema, insertTaskSchema, insertActivitySchema, insertListSchema, insertFormSchema, insertQuotationSchema, insertQuotationTemplateSchema, insertEmailTemplateSchema, insertEmailCampaignSchema, insertUserSchema, loginSchema } from "@shared/schema";
+import { insertContactSchema, insertCompanySchema, insertPartnerSchema, insertDealSchema, insertTaskSchema, insertActivitySchema, insertListSchema, insertFormSchema, insertQuotationSchema, insertQuotationTemplateSchema, insertEmailTemplateSchema, insertEmailCampaignSchema, insertUserSchema, loginSchema } from "@shared/schema";
 import twitterRoutes from "./routes/twitter";
 import bcrypt from "bcrypt";
 
@@ -309,6 +309,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(204).send();
     } catch (error) {
       res.status(500).json({ message: "Failed to delete company" });
+    }
+  });
+
+  // Partners
+  app.get("/api/partners", async (req, res) => {
+    try {
+      const partners = await storage.getPartners();
+      res.json(partners);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get partners" });
+    }
+  });
+
+  app.get("/api/partners/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const partner = await storage.getPartner(id);
+      if (!partner) {
+        return res.status(404).json({ message: "Partner not found" });
+      }
+      res.json(partner);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get partner" });
+    }
+  });
+
+  app.post("/api/partners", async (req, res) => {
+    try {
+      const data = insertPartnerSchema.parse(req.body);
+      const partner = await storage.createPartner(data);
+      res.status(201).json(partner);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid partner data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create partner" });
+    }
+  });
+
+  app.put("/api/partners/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const data = insertPartnerSchema.parse(req.body);
+      const partner = await storage.updatePartner(id, data);
+      if (!partner) {
+        return res.status(404).json({ message: "Partner not found" });
+      }
+      res.json(partner);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid partner data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update partner" });
+    }
+  });
+
+  app.delete("/api/partners/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deletePartner(id);
+      if (!success) {
+        return res.status(404).json({ message: "Partner not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete partner" });
     }
   });
 
