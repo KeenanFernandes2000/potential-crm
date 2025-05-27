@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Company } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
@@ -14,20 +14,77 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import CompanyForm from "./CompanyForm";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 
 const Companies = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingCompany, setEditingCompany] = useState<Company | null>(null);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [companyToDelete, setCompanyToDelete] = useState<Company | null>(null);
+  
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: companies, isLoading } = useQuery<Company[]>({
     queryKey: ["/api/companies"],
   });
 
+  const deleteMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/companies/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Failed to delete company");
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/companies"] });
+      toast({
+        title: "Company deleted",
+        description: "The company has been successfully deleted.",
+      });
+      setShowDeleteDialog(false);
+      setCompanyToDelete(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Delete failed",
+        description: error.message || "Failed to delete company",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleEdit = (company: Company) => {
     setEditingCompany(company);
     setIsCreateModalOpen(true);
+  };
+
+  const handleDelete = (company: Company) => {
+    setCompanyToDelete(company);
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDelete = () => {
+    if (companyToDelete) {
+      deleteMutation.mutate(companyToDelete.id);
+    }
   };
 
   const closeModal = () => {
@@ -127,7 +184,10 @@ const Companies = () => {
               <DropdownMenuItem>View deals</DropdownMenuItem>
               <DropdownMenuItem>Create deal</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-red-600">
+              <DropdownMenuItem 
+                className="text-red-600"
+                onClick={() => handleDelete(company)}
+              >
                 Delete
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -168,6 +228,29 @@ const Companies = () => {
           />
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to delete this company?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the company
+              "{companyToDelete?.name}" and all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDelete}
+              className="bg-red-600 hover:bg-red-700"
+              disabled={deleteMutation.isPending}
+            >
+              {deleteMutation.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </section>
   );
 };
