@@ -548,4 +548,30 @@ export class DatabaseStorage implements IStorage {
     // The actual email sending is handled by the email service
     return true;
   }
+
+  // Partner methods
+  async getPartners(): Promise<Partner[]> {
+    const partners = await this.db.select().from(schema.partners);
+    return partners;
+  }
+
+  async getPartner(id: number): Promise<Partner | undefined> {
+    const partners = await this.db.select().from(schema.partners).where(eq(schema.partners.id, id));
+    return partners[0];
+  }
+
+  async createPartner(partner: InsertPartner): Promise<Partner> {
+    const [newPartner] = await this.db.insert(schema.partners).values(partner).returning();
+    return newPartner;
+  }
+
+  async updatePartner(id: number, partner: InsertPartner): Promise<Partner | undefined> {
+    const [updatedPartner] = await this.db.update(schema.partners).set(partner).where(eq(schema.partners.id, id)).returning();
+    return updatedPartner;
+  }
+
+  async deletePartner(id: number): Promise<boolean> {
+    const result = await this.db.delete(schema.partners).where(eq(schema.partners.id, id));
+    return result.rowCount > 0;
+  }
 }
