@@ -1,5 +1,4 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
 import { User } from "@shared/schema";
 
 interface AuthContextType {
@@ -13,31 +12,27 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-
-  const { data, isLoading, error } = useQuery({
-    queryKey: ["/api/auth/me"],
-    retry: false,
-    refetchOnWindowFocus: false,
-  });
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (data?.user) {
-      setUser(data.user);
-    } else if (error) {
-      setUser(null);
+    // Check localStorage for stored user data
+    const storedUser = localStorage.getItem("currentUser");
+    if (storedUser) {
+      try {
+        const userData = JSON.parse(storedUser);
+        setUser(userData);
+      } catch (error) {
+        console.error("Error parsing stored user data:", error);
+        localStorage.removeItem("currentUser");
+      }
     }
-  }, [data, error]);
+    setIsLoading(false);
+  }, []);
 
-  const logout = async () => {
-    try {
-      await fetch("/api/auth/logout", { method: "POST" });
-      setUser(null);
-      window.location.href = "/login";
-    } catch (error) {
-      console.error("Logout error:", error);
-      setUser(null);
-      window.location.href = "/login";
-    }
+  const logout = () => {
+    localStorage.removeItem("currentUser");
+    setUser(null);
+    window.location.href = "/login";
   };
 
   return (
