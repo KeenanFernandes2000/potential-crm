@@ -65,13 +65,13 @@ const Dashboard = () => {
     updateTaskMutation.mutate({ id, completed });
   };
 
-  // Pipeline stages data
-  const pipelineStages: PipelineStage[] = [
-    { name: "New Leads", count: 42, percentage: 32 },
-    { name: "Qualified", count: 28, percentage: 21 },
-    { name: "Proposal", count: 19, percentage: 14 },
-    { name: "Negotiation", count: 12, percentage: 9, isLast: true },
-    { name: "Closed Won", count: 32, percentage: 24, isWon: true },
+  // Pipeline stages data - will be calculated from real deals data
+  const pipelineStages: PipelineStage[] = stats?.pipelineStages || [
+    { name: "New Leads", count: 0, percentage: 0 },
+    { name: "Qualified", count: 0, percentage: 0 },
+    { name: "Proposal", count: 0, percentage: 0 },
+    { name: "Negotiation", count: 0, percentage: 0, isLast: true },
+    { name: "Closed Won", count: 0, percentage: 0, isWon: true },
   ];
 
   return (
@@ -94,32 +94,32 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <StatisticCard
           title="Total Leads"
-          value={statsLoading ? "Loading..." : stats?.totalLeads || "1,482"}
-          change={12.5}
+          value={statsLoading ? "Loading..." : stats?.totalLeads?.toString() || "0"}
+          change={stats?.totalLeadsChange || 0}
           icon={Users}
           iconColor="text-secondary-500"
           iconBgColor="bg-secondary-100"
         />
         <StatisticCard
           title="Open Deals"
-          value={statsLoading ? "Loading..." : stats?.openDeals || "64"}
-          change={3.2}
+          value={statsLoading ? "Loading..." : stats?.openDeals?.toString() || "0"}
+          change={stats?.openDealsChange || 0}
           icon={DollarSign}
           iconColor="text-accent-500"
           iconBgColor="bg-accent-100"
         />
         <StatisticCard
           title="Revenue"
-          value={statsLoading ? "Loading..." : stats?.revenue || "$89,421"}
-          change={-4.1}
+          value={statsLoading ? "Loading..." : stats?.revenue || "$0"}
+          change={stats?.revenueChange || 0}
           icon={DollarSign}
           iconColor="text-success"
           iconBgColor="bg-success/20"
         />
         <StatisticCard
           title="Conversion Rate"
-          value={statsLoading ? "Loading..." : stats?.conversionRate || "24.8%"}
-          change={1.8}
+          value={statsLoading ? "Loading..." : stats?.conversionRate || "0%"}
+          change={stats?.conversionRateChange || 0}
           icon={BarChart3}
           iconColor="text-primary-500"
           iconBgColor="bg-primary-100"

@@ -62,56 +62,8 @@ type PlatformMetrics = {
   };
 };
 
-const platformMetrics: PlatformMetrics[] = [
-  {
-    name: "Twitter",
-    color: "#1DA1F2",
-    icon: <Twitter className="h-5 w-5" />,
-    followerCount: 4350,
-    engagementRate: 2.8,
-    postsLastWeek: 12,
-    topPost: {
-      content: "Introducing our new CRM features that will transform your workflow!",
-      engagement: 356
-    }
-  },
-  {
-    name: "Facebook",
-    color: "#4267B2",
-    icon: <Facebook className="h-5 w-5" />,
-    followerCount: 5000,
-    engagementRate: 2.1,
-    postsLastWeek: 8,
-    topPost: {
-      content: "How our platform helped ABC Corp increase sales by 32% - Full case study",
-      engagement: 278
-    }
-  },
-  {
-    name: "Instagram",
-    color: "#E1306C",
-    icon: <Instagram className="h-5 w-5" />,
-    followerCount: 6500,
-    engagementRate: 3.4,
-    postsLastWeek: 5,
-    topPost: {
-      content: "Behind the scenes at our annual company retreat! #TeamBuilding",
-      engagement: 412
-    }
-  },
-  {
-    name: "LinkedIn",
-    color: "#0077B5",
-    icon: <Linkedin className="h-5 w-5" />,
-    followerCount: 3450,
-    engagementRate: 1.9,
-    postsLastWeek: 6,
-    topPost: {
-      content: "We're hiring! Join our growing team of sales and marketing professionals.",
-      engagement: 245
-    }
-  }
-];
+// Platform metrics will be populated from real social account data
+const platformMetrics: PlatformMetrics[] = [];
 
 export default function AnalyticsTab() {
   const [timeRange, setTimeRange] = useState("14d");
