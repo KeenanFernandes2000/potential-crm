@@ -1327,6 +1327,4 @@ export class DatabaseStorage implements IStorage {
 }
 
 // Get the right storage based on environment
-export const storage = process.env.NODE_ENV === "production" 
-  ? new DatabaseStorage() 
-  : new MemStorage();
+export const storage = new DatabaseStorage();
