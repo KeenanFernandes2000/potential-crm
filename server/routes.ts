@@ -336,24 +336,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/partners", async (req, res) => {
-    console.log("🔵 Partner POST route hit!");
+    console.log("🔵🔵🔵 PARTNER POST ROUTE HIT! 🔵🔵🔵");
+    console.log("🔵 Request URL:", req.url);
+    console.log("🔵 Request method:", req.method);
     console.log("🔵 Request body:", JSON.stringify(req.body, null, 2));
-    console.log("🔵 Request headers:", req.headers);
+    console.log("🔵 Content-Type:", req.headers['content-type']);
     
     try {
+      console.log("🟡 Starting partner creation process...");
       const data = insertPartnerSchema.parse(req.body);
-      console.log("🟢 Parsed partner data:", data);
+      console.log("🟢 Successfully parsed partner data:", JSON.stringify(data, null, 2));
+      
       const partner = await storage.createPartner(data);
-      console.log("🟢 Created partner:", partner);
+      console.log("🟢 Successfully created partner:", JSON.stringify(partner, null, 2));
+      
+      console.log("🟢 Sending 201 response with partner data");
       res.status(201).json(partner);
+      console.log("🟢 Response sent successfully");
     } catch (error) {
-      console.error("🔴 Partner creation error:", error);
+      console.error("🔴🔴🔴 PARTNER CREATION ERROR:", error);
       if (error instanceof z.ZodError) {
-        console.log("🔴 Zod validation errors:", error.errors);
+        console.log("🔴 Zod validation errors:", JSON.stringify(error.errors, null, 2));
         return res.status(400).json({ message: "Invalid partner data", errors: error.errors });
       }
-      console.log("🔴 Other error:", error);
-      res.status(500).json({ message: "Failed to create partner" });
+      console.log("🔴 Sending 500 error response");
+      res.status(500).json({ message: "Failed to create partner", error: String(error) });
     }
   });
 
