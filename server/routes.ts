@@ -2,22 +2,181 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
-import { insertContactSchema, insertCompanySchema, insertDealSchema, insertTaskSchema, insertActivitySchema, insertListSchema, insertFormSchema, insertQuotationSchema, insertQuotationTemplateSchema, insertEmailTemplateSchema, insertEmailCampaignSchema } from "@shared/schema";
+import { insertContactSchema, insertCompanySchema, insertDealSchema, insertTaskSchema, insertActivitySchema, insertListSchema, insertFormSchema, insertQuotationSchema, insertQuotationTemplateSchema, insertEmailTemplateSchema, insertEmailCampaignSchema, insertUserSchema, loginSchema } from "@shared/schema";
 import twitterRoutes from "./routes/twitter";
+import bcrypt from "bcrypt";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Register Twitter routes
   app.use('/api/twitter', twitterRoutes);
   
+  // Authentication Routes
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { email, password } = loginSchema.parse(req.body);
+      
+      const user = await storage.getUserByEmail(email);
+      if (!user) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+
+      const isValidPassword = await bcrypt.compare(password, user.password);
+      if (!isValidPassword) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+
+      if (!user.isActive) {
+        return res.status(401).json({ message: "Account is disabled" });
+      }
+
+      // Store user info in session
+      (req as any).session.userId = user.id;
+      (req as any).session.userEmail = user.email;
+      (req as any).session.userRole = user.role;
+
+      const { password: _, ...userWithoutPassword } = user;
+      res.json({ user: userWithoutPassword, message: "Login successful" });
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(500).json({ message: "Login failed" });
+    }
+  });
+
+  app.post("/api/auth/logout", async (req, res) => {
+    try {
+      (req as any).session.destroy((err: any) => {
+        if (err) {
+          console.error("Logout error:", err);
+          return res.status(500).json({ message: "Logout failed" });
+        }
+        res.json({ message: "Logout successful" });
+      });
+    } catch (error) {
+      console.error("Logout error:", error);
+      res.status(500).json({ message: "Logout failed" });
+    }
+  });
+
+  app.get("/api/auth/me", async (req, res) => {
+    try {
+      const userId = (req as any).session?.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "Not authenticated" });
+      }
+
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
+
+      const { password: _, ...userWithoutPassword } = user;
+      res.json({ user: userWithoutPassword });
+    } catch (error) {
+      console.error("Auth check error:", error);
+      res.status(500).json({ message: "Authentication check failed" });
+    }
+  });
+  
   // API Routes for CRM System
 
-  // Users
+  // Users (Admin only routes)
   app.get("/api/users", async (req, res) => {
     try {
+      const userRole = (req as any).session?.userRole;
+      if (userRole !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+      
       const users = await storage.getUsers();
-      res.json(users);
+      // Remove passwords from response
+      const usersWithoutPasswords = users.map(({ password, ...user }) => user);
+      res.json(usersWithoutPasswords);
     } catch (error) {
       res.status(500).json({ message: "Failed to get users" });
+    }
+  });
+
+  app.post("/api/users", async (req, res) => {
+    try {
+      const userRole = (req as any).session?.userRole;
+      if (userRole !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const data = insertUserSchema.parse(req.body);
+      
+      // Check if email already exists
+      const existingUser = await storage.getUserByEmail(data.email);
+      if (existingUser) {
+        return res.status(409).json({ message: "Email already exists" });
+      }
+      
+      // Hash password
+      const hashedPassword = await bcrypt.hash(data.password, 12);
+      const userData = { ...data, password: hashedPassword };
+      
+      const user = await storage.createUser(userData);
+      const { password: _, ...userWithoutPassword } = user;
+      res.status(201).json(userWithoutPassword);
+    } catch (error) {
+      console.error("Create user error:", error);
+      res.status(500).json({ message: "Failed to create user" });
+    }
+  });
+
+  app.put("/api/users/:id", async (req, res) => {
+    try {
+      const userRole = (req as any).session?.userRole;
+      if (userRole !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const id = parseInt(req.params.id);
+      const data = req.body;
+      
+      // If password is being updated, hash it
+      if (data.password) {
+        data.password = await bcrypt.hash(data.password, 12);
+      }
+      
+      const user = await storage.updateUser(id, data);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      const { password: _, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      console.error("Update user error:", error);
+      res.status(500).json({ message: "Failed to update user" });
+    }
+  });
+
+  app.delete("/api/users/:id", async (req, res) => {
+    try {
+      const userRole = (req as any).session?.userRole;
+      const currentUserId = (req as any).session?.userId;
+      
+      if (userRole !== 'admin') {
+        return res.status(403).json({ message: "Admin access required" });
+      }
+
+      const id = parseInt(req.params.id);
+      
+      // Prevent admin from deleting themselves
+      if (id === currentUserId) {
+        return res.status(400).json({ message: "Cannot delete your own account" });
+      }
+      
+      const success = await storage.deleteUser(id);
+      if (!success) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      res.json({ message: "User deleted successfully" });
+    } catch (error) {
+      console.error("Delete user error:", error);
+      res.status(500).json({ message: "Failed to delete user" });
     }
   });
 
