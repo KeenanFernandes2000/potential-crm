@@ -119,16 +119,16 @@ const Sidebar = ({ isOpen, closeSidebar }: SidebarProps) => {
             {sidebarItems.map((item) => (
               <li key={item.path} className="mb-1">
                 <Link href={item.path}>
-                  <a 
+                  <span 
                     className={cn(
-                      "sidebar-item flex items-center px-4 py-3 text-white hover:bg-gray-700 rounded-md mx-2",
+                      "sidebar-item flex items-center px-4 py-3 text-white hover:bg-gray-700 rounded-md mx-2 cursor-pointer",
                       location === item.path && "active bg-secondary font-medium"
                     )}
                     onClick={() => closeSidebar()}
                   >
                     {item.icon}
                     <span className="font-medium">{item.name}</span>
-                  </a>
+                  </span>
                 </Link>
               </li>
             ))}
