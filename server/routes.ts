@@ -336,18 +336,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/partners", async (req, res) => {
+    console.log("🔵 Partner POST route hit!");
+    console.log("🔵 Request body:", JSON.stringify(req.body, null, 2));
+    console.log("🔵 Request headers:", req.headers);
+    
     try {
-      console.log("Partner creation request body:", req.body);
       const data = insertPartnerSchema.parse(req.body);
-      console.log("Parsed partner data:", data);
+      console.log("🟢 Parsed partner data:", data);
       const partner = await storage.createPartner(data);
-      console.log("Created partner:", partner);
+      console.log("🟢 Created partner:", partner);
       res.status(201).json(partner);
     } catch (error) {
-      console.error("Partner creation error:", error);
+      console.error("🔴 Partner creation error:", error);
       if (error instanceof z.ZodError) {
+        console.log("🔴 Zod validation errors:", error.errors);
         return res.status(400).json({ message: "Invalid partner data", errors: error.errors });
       }
+      console.log("🔴 Other error:", error);
       res.status(500).json({ message: "Failed to create partner" });
     }
   });

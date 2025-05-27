@@ -1,7 +1,7 @@
 import { 
   users, contacts, companies, deals, tasks, activities, lists, forms, formSubmissions, listContacts,
   socialAccounts, socialPosts, socialCampaigns, campaignPosts, quotations, quotationTemplates,
-  emailTemplates, emailCampaigns, emailCampaignRecipients,
+  emailTemplates, emailCampaigns, emailCampaignRecipients, partners,
   type User, type InsertUser, 
   type Contact, type InsertContact,
   type Company, type InsertCompany,
@@ -13,6 +13,7 @@ import {
   type Quotation, type InsertQuotation,
   type QuotationTemplate, type InsertQuotationTemplate,
   type SocialAccount, type InsertSocialAccount,
+  type Partner, type InsertPartner,
   type SocialPost, type InsertSocialPost,
   type SocialCampaign, type InsertSocialCampaign,
   type EmailTemplate, type InsertEmailTemplate,
@@ -551,27 +552,27 @@ export class DatabaseStorage implements IStorage {
 
   // Partner methods
   async getPartners(): Promise<Partner[]> {
-    const partners = await this.db.select().from(schema.partners);
-    return partners;
+    const partnerList = await db.select().from(partners);
+    return partnerList;
   }
 
   async getPartner(id: number): Promise<Partner | undefined> {
-    const partners = await this.db.select().from(schema.partners).where(eq(schema.partners.id, id));
-    return partners[0];
+    const partnerList = await db.select().from(partners).where(eq(partners.id, id));
+    return partnerList[0];
   }
 
   async createPartner(partner: InsertPartner): Promise<Partner> {
-    const [newPartner] = await this.db.insert(schema.partners).values(partner).returning();
+    const [newPartner] = await db.insert(partners).values(partner).returning();
     return newPartner;
   }
 
   async updatePartner(id: number, partner: InsertPartner): Promise<Partner | undefined> {
-    const [updatedPartner] = await this.db.update(schema.partners).set(partner).where(eq(schema.partners.id, id)).returning();
+    const [updatedPartner] = await db.update(partners).set(partner).where(eq(partners.id, id)).returning();
     return updatedPartner;
   }
 
   async deletePartner(id: number): Promise<boolean> {
-    const result = await this.db.delete(schema.partners).where(eq(schema.partners.id, id));
-    return result.rowCount > 0;
+    const result = await db.delete(partners).where(eq(partners.id, id));
+    return (result.rowCount || 0) > 0;
   }
 }
