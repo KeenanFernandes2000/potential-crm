@@ -404,6 +404,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // Check if user is authenticated
       const userId = (req as any).session?.userId;
+      console.log("Deals GET request - Session data:", JSON.stringify((req as any).session, null, 2));
+      console.log("Deals GET request - userId:", userId);
       if (!userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
