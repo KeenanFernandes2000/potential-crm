@@ -1,5 +1,6 @@
 import { useLocation, Link } from "wouter";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/context/AuthContext";
 import { 
   LayoutDashboard, 
   Users, 
@@ -12,7 +13,8 @@ import {
   Zap,
   BarChart3, 
   Settings,
-  FileSpreadsheet
+  FileSpreadsheet,
+  UserCheck
 } from "lucide-react";
 
 interface SidebarProps {
@@ -22,8 +24,9 @@ interface SidebarProps {
 
 const Sidebar = ({ isOpen, closeSidebar }: SidebarProps) => {
   const [location] = useLocation();
+  const { user } = useAuth();
 
-  const sidebarItems = [
+  const baseSidebarItems = [
     { 
       path: "/", 
       name: "Dashboard", 
@@ -79,11 +82,28 @@ const Sidebar = ({ isOpen, closeSidebar }: SidebarProps) => {
       name: "Reports",
       icon: <BarChart3 className="h-5 w-5 mr-3" />
     },
+  ];
+
+  // Add admin-only items
+  const adminItems = [
     { 
-      path: "/settings", 
-      name: "Settings",
-      icon: <Settings className="h-5 w-5 mr-3" />
+      path: "/users", 
+      name: "User Management",
+      icon: <UserCheck className="h-5 w-5 mr-3" />
     },
+  ];
+
+  const settingsItem = { 
+    path: "/settings", 
+    name: "Settings",
+    icon: <Settings className="h-5 w-5 mr-3" />
+  };
+
+  // Combine items based on user role
+  const sidebarItems = [
+    ...baseSidebarItems,
+    ...(user?.role === 'admin' ? adminItems : []),
+    settingsItem
   ];
 
   return (
