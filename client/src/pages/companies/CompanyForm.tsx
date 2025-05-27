@@ -119,8 +119,8 @@ const CompanyForm = ({ company, onClose }: CompanyFormProps) => {
   ];
 
   return (
-    <div>
-      <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+    <div className="flex flex-col max-h-[80vh]">
+      <div className="border-b border-gray-200 px-6 py-4 flex items-center justify-between flex-shrink-0">
         <h3 className="text-lg font-semibold">
           {isEditing ? "Edit Company" : "Add New Company"}
         </h3>
@@ -131,8 +131,9 @@ const CompanyForm = ({ company, onClose }: CompanyFormProps) => {
       </div>
 
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="p-6 space-y-4">
-          <FormField
+        <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 min-h-0">
+          <div className="p-6 space-y-4 overflow-y-auto flex-1">
+            <FormField
             control={form.control}
             name="name"
             render={({ field }) => (
@@ -313,7 +314,9 @@ const CompanyForm = ({ company, onClose }: CompanyFormProps) => {
             )}
           />
 
-          <div className="border-t border-gray-200 pt-4 flex justify-end space-x-3">
+          </div>
+          
+          <div className="border-t border-gray-200 pt-4 px-6 pb-6 flex justify-end space-x-3 flex-shrink-0">
             <Button
               type="button"
               variant="outline"
