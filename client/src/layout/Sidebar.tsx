@@ -14,7 +14,8 @@ import {
   BarChart3, 
   Settings,
   FileSpreadsheet,
-  UserCheck
+  UserCheck,
+  Handshake
 } from "lucide-react";
 
 interface SidebarProps {
@@ -41,6 +42,11 @@ const Sidebar = ({ isOpen, closeSidebar }: SidebarProps) => {
       path: "/companies", 
       name: "Companies",
       icon: <Building2 className="h-5 w-5 mr-3" />
+    },
+    { 
+      path: "/partners", 
+      name: "Partners",
+      icon: <Handshake className="h-5 w-5 mr-3" />
     },
     { 
       path: "/deals", 

@@ -48,6 +48,24 @@ export const contacts = pgTable("contacts", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
+// Partners table
+export const partners = pgTable("partners", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  contactPerson: text("contact_person"),
+  phone: text("phone"),
+  website: text("website"),
+  industry: text("industry"),
+  partnerType: text("partner_type"), // e.g., "Reseller", "Technology", "Strategic"
+  commissionRate: integer("commission_rate"), // percentage
+  status: text("status").default("Active"), // Active, Inactive, Suspended
+  notes: text("notes"),
+  userId: integer("user_id").references(() => users.id), // Link to user account
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Companies table
 export const companies = pgTable("companies", {
   id: serial("id").primaryKey(),
@@ -58,6 +76,7 @@ export const companies = pgTable("companies", {
   country: text("country"),
   notes: text("notes"),
   tags: text("tags").array(),
+  partnerId: integer("partner_id").references(() => partners.id), // Link to partner
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -70,6 +89,7 @@ export const deals = pgTable("deals", {
   currency: text("currency").default("USD"),
   contactId: integer("contact_id").references(() => contacts.id),
   companyId: integer("company_id").references(() => companies.id),
+  partnerId: integer("partner_id").references(() => partners.id), // Link to partner
   stage: text("stage").default("Inquiry"),
   subscriptionType: text("subscription_type"),
   startDate: timestamp("start_date"),
@@ -385,6 +405,12 @@ export const insertEmailCampaignRecipientSchema = createInsertSchema(emailCampai
   clickedAt: true,
 });
 
+export const insertPartnerSchema = createInsertSchema(partners).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types for application
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -433,3 +459,6 @@ export type EmailCampaign = typeof emailCampaigns.$inferSelect;
 
 export type InsertEmailCampaignRecipient = z.infer<typeof insertEmailCampaignRecipientSchema>;
 export type EmailCampaignRecipient = typeof emailCampaignRecipients.$inferSelect;
+
+export type InsertPartner = z.infer<typeof insertPartnerSchema>;
+export type Partner = typeof partners.$inferSelect;
