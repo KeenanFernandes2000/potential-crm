@@ -3,6 +3,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { AuthProvider, useAuth } from "@/context/AuthContext";
 import MainLayout from "@/layout/MainLayout";
 import Dashboard from "@/pages/dashboard";
 import Contacts from "@/pages/contacts";
@@ -18,11 +19,28 @@ import SocialMedia from "@/pages/social";
 import Reports from "@/pages/reports";
 import Settings from "@/pages/settings";
 import Quotations from "@/pages/quotations";
+import Users from "@/pages/users";
+import LoginPage from "@/pages/auth/LoginPage";
 import NotFound from "@/pages/not-found";
 
-function Router() {
+function ProtectedRoutes() {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <LoginPage />;
+  }
+
   return (
     <Switch>
+      <Route path="/login" component={() => { window.location.href = "/"; return null; }} />
       <Route path="/" component={Dashboard} />
       <Route path="/contacts" component={Contacts} />
       <Route path="/companies" component={Companies} />
@@ -30,35 +48,47 @@ function Router() {
       <Route path="/quotations" component={Quotations} />
       <Route path="/lists" component={Lists} />
       <Route path="/forms" component={Forms} />
-      <Route path="/forms/embed/:id" component={FormEmbed} />
       <Route path="/forms/submissions/:id" component={FormSubmissions} />
       <Route path="/calendar" component={Calendar} />
       <Route path="/email" component={Email} />
       <Route path="/social" component={SocialMedia} />
       <Route path="/reports" component={Reports} />
       <Route path="/settings" component={Settings} />
+      <Route path="/users" component={Users} />
       <Route component={NotFound} />
     </Switch>
   );
 }
 
-function App() {
+function AppContent() {
   const [location] = useLocation();
   const isEmbedRoute = location.startsWith('/forms/embed/');
+  const isLoginRoute = location === '/login';
 
-  // For embedded forms, don't use the main layout
+  if (isEmbedRoute) {
+    return <FormEmbed />;
+  }
+
+  if (isLoginRoute) {
+    return <LoginPage />;
+  }
+
+  return (
+    <MainLayout>
+      <ProtectedRoutes />
+    </MainLayout>
+  );
+}
+
+function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        {isEmbedRoute ? (
-          <Router />
-        ) : (
-          <MainLayout>
-            <Router />
-          </MainLayout>
-        )}
-      </TooltipProvider>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <AppContent />
+        </TooltipProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
