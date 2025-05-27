@@ -55,6 +55,7 @@ export interface IStorage {
 
   // Deals
   getDeals(): Promise<Deal[]>;
+  getDealsByPartner(partnerId: number): Promise<Deal[]>;
   getDeal(id: number): Promise<Deal | undefined>;
   createDeal(deal: InsertDeal): Promise<Deal>;
   updateDeal(id: number, deal: InsertDeal): Promise<Deal | undefined>;
@@ -452,6 +453,10 @@ export class MemStorage implements IStorage {
   // Deals
   async getDeals(): Promise<Deal[]> {
     return Array.from(this.dealsMap.values());
+  }
+
+  async getDealsByPartner(partnerId: number): Promise<Deal[]> {
+    return Array.from(this.dealsMap.values()).filter(deal => deal.partnerId === partnerId);
   }
 
   async getDeal(id: number): Promise<Deal | undefined> {

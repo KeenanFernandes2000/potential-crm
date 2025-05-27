@@ -205,6 +205,10 @@ export class DatabaseStorage implements IStorage {
     return db.select().from(deals);
   }
 
+  async getDealsByPartner(partnerId: number): Promise<Deal[]> {
+    return db.select().from(deals).where(eq(deals.partnerId, partnerId));
+  }
+
   async getDeal(id: number): Promise<Deal | undefined> {
     const [deal] = await db.select().from(deals).where(eq(deals.id, id));
     return deal;

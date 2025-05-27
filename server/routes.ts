@@ -397,7 +397,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Deals
   app.get("/api/deals", async (req, res) => {
     try {
-      const deals = await storage.getDeals();
+      // Check if user is authenticated
+      if (!req.session?.user) {
+        return res.status(401).json({ message: "Authentication required" });
+      }
+
+      const user = req.session.user;
+      let deals;
+
+      // If user is a partner, only show deals linked to their partner account
+      if (user.role === 'partner') {
+        // Find the partner record linked to this user
+        const partners = await storage.getPartners();
+        const userPartner = partners.find(partner => partner.userId === user.id);
+        
+        if (!userPartner) {
+          return res.status(403).json({ message: "No partner account linked to this user" });
+        }
+        
+        // Get deals for this specific partner
+        deals = await storage.getDealsByPartner(userPartner.id);
+      } else {
+        // Admin and regular users can see all deals
+        deals = await storage.getDeals();
+      }
+      
       res.json(deals);
     } catch (error) {
       res.status(500).json({ message: "Failed to get deals" });
