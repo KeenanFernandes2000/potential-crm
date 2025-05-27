@@ -403,11 +403,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/deals", async (req, res) => {
     try {
       // Check if user is authenticated
-      if (!req.session?.user) {
+      const userId = (req as any).session?.userId;
+      if (!userId) {
         return res.status(401).json({ message: "Authentication required" });
       }
 
-      const user = req.session.user;
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(401).json({ message: "User not found" });
+      }
       let deals;
 
       // If user is a partner, only show deals linked to their partner account
@@ -448,11 +452,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/deals", async (req, res) => {
     try {
+      console.log("Deal creation request body:", JSON.stringify(req.body, null, 2));
       const data = insertDealSchema.parse(req.body);
+      console.log("Parsed deal data:", JSON.stringify(data, null, 2));
       const deal = await storage.createDeal(data);
       res.status(201).json(deal);
     } catch (error) {
+      console.error("Deal creation error:", error);
       if (error instanceof z.ZodError) {
+        console.log("Zod validation errors:", JSON.stringify(error.errors, null, 2));
         return res.status(400).json({ message: "Invalid deal data", errors: error.errors });
       }
       res.status(500).json({ message: "Failed to create deal" });
