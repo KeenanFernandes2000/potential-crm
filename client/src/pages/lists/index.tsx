@@ -39,9 +39,14 @@ const Lists = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isManageContactsOpen, setIsManageContactsOpen] = useState(false);
+  const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
   const [editingList, setEditingList] = useState<List | null>(null);
   const [managingList, setManagingList] = useState<List | null>(null);
+  const [importingList, setImportingList] = useState<List | null>(null);
   const [selectedContacts, setSelectedContacts] = useState<number[]>([]);
+  const [csvFile, setCsvFile] = useState<File | null>(null);
+  const [csvData, setCsvData] = useState<string[][]>([]);
+  const [columnMapping, setColumnMapping] = useState<{[key: string]: string}>({});
   const { toast } = useToast();
 
   const { data: lists, isLoading } = useQuery<List[]>({
@@ -183,6 +188,104 @@ const Lists = () => {
     }
   };
 
+  const handleBulkImport = (list: List) => {
+    setImportingList(list);
+    setCsvFile(null);
+    setCsvData([]);
+    setColumnMapping({});
+    setIsBulkImportOpen(true);
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && file.type === 'text/csv') {
+      setCsvFile(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
+        const rows = text.split('\n').map(row => row.split(',').map(cell => cell.trim()));
+        setCsvData(rows);
+        // Initialize column mapping
+        if (rows.length > 0) {
+          const headers = rows[0];
+          const mapping: {[key: string]: string} = {};
+          headers.forEach((header, index) => {
+            const lowerHeader = header.toLowerCase();
+            if (lowerHeader.includes('first') || lowerHeader.includes('fname')) {
+              mapping[`column_${index}`] = 'firstName';
+            } else if (lowerHeader.includes('last') || lowerHeader.includes('lname')) {
+              mapping[`column_${index}`] = 'lastName';
+            } else if (lowerHeader.includes('email') || lowerHeader.includes('mail')) {
+              mapping[`column_${index}`] = 'email';
+            } else if (lowerHeader.includes('phone')) {
+              mapping[`column_${index}`] = 'phone';
+            }
+          });
+          setColumnMapping(mapping);
+        }
+      };
+      reader.readAsText(file);
+    } else {
+      toast({
+        title: "Error",
+        description: "Please select a valid CSV file",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const bulkImportContacts = useMutation({
+    mutationFn: async ({ listId, contacts }: { listId: number; contacts: any[] }) => {
+      return apiRequest(`/api/lists/${listId}/bulk-import`, "POST", { contacts });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/lists"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/contacts"] });
+      setIsBulkImportOpen(false);
+      toast({
+        title: "Success",
+        description: "Contacts imported successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to import contacts",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleImportContacts = () => {
+    if (!importingList || !csvData.length) return;
+
+    const [headers, ...dataRows] = csvData;
+    const contacts = dataRows
+      .filter(row => row.some(cell => cell.trim())) // Filter out empty rows
+      .map(row => {
+        const contact: any = {};
+        headers.forEach((header, index) => {
+          const mappedField = columnMapping[`column_${index}`];
+          if (mappedField && row[index]) {
+            contact[mappedField] = row[index].trim();
+          }
+        });
+        return contact;
+      })
+      .filter(contact => contact.email); // Only import contacts with email
+
+    if (contacts.length === 0) {
+      toast({
+        title: "Error",
+        description: "No valid contacts found. Make sure email column is mapped correctly.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    bulkImportContacts.mutate({ listId: importingList.id, contacts });
+  };
+
   const columns: ColumnDef<List>[] = [
     {
       accessorKey: "name",
@@ -264,6 +367,10 @@ const Lists = () => {
               <DropdownMenuItem onClick={() => handleManageContacts(list)}>
                 <Eye className="mr-2 h-4 w-4" />
                 Manage contacts
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleBulkImport(list)}>
+                <Upload className="mr-2 h-4 w-4" />
+                Bulk import contacts
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <Download className="mr-2 h-4 w-4" />
@@ -527,6 +634,113 @@ const Lists = () => {
               disabled={selectedContacts.length === 0 || addContactsToList.isPending}
             >
               {addContactsToList.isPending ? "Adding..." : `Add ${selectedContacts.length} Contact${selectedContacts.length !== 1 ? 's' : ''}`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Import Dialog */}
+      <Dialog open={isBulkImportOpen} onOpenChange={setIsBulkImportOpen}>
+        <DialogContent className="sm:max-w-[700px]">
+          <DialogHeader>
+            <DialogTitle>Bulk Import Contacts - {importingList?.name}</DialogTitle>
+            <DialogDescription>
+              Upload a CSV file to import multiple contacts into this list.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="csvFile" className="text-sm font-medium">
+                Select CSV File
+              </label>
+              <Input
+                id="csvFile"
+                type="file"
+                accept=".csv"
+                onChange={handleFileUpload}
+                className="mt-1"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Expected format: CSV with columns like First Name, Last Name, Email, Phone
+              </p>
+            </div>
+
+            {csvData.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium mb-2">Map CSV Columns</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  {csvData[0].map((header, index) => (
+                    <div key={index} className="space-y-1">
+                      <label className="text-xs text-gray-600">
+                        CSV Column: "{header}"
+                      </label>
+                      <select
+                        value={columnMapping[`column_${index}`] || ''}
+                        onChange={(e) => setColumnMapping({
+                          ...columnMapping,
+                          [`column_${index}`]: e.target.value
+                        })}
+                        className="w-full p-2 border rounded text-sm"
+                      >
+                        <option value="">Skip this column</option>
+                        <option value="firstName">First Name</option>
+                        <option value="lastName">Last Name</option>
+                        <option value="email">Email *</option>
+                        <option value="phone">Phone</option>
+                        <option value="jobTitle">Job Title</option>
+                        <option value="company">Company</option>
+                      </select>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-4 p-3 bg-gray-50 rounded">
+                  <h5 className="text-sm font-medium mb-2">Preview (first 3 rows)</h5>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs border-collapse">
+                      <thead>
+                        <tr>
+                          {csvData[0].map((header, index) => (
+                            <th key={index} className="border p-1 bg-gray-100 text-left">
+                              {header}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {csvData.slice(1, 4).map((row, rowIndex) => (
+                          <tr key={rowIndex}>
+                            {row.map((cell, cellIndex) => (
+                              <td key={cellIndex} className="border p-1">
+                                {cell}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">
+                    Total rows: {csvData.length - 1} contacts
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => setIsBulkImportOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="button"
+              onClick={handleImportContacts}
+              disabled={!csvData.length || !Object.values(columnMapping).includes('email') || bulkImportContacts.isPending}
+            >
+              {bulkImportContacts.isPending ? "Importing..." : "Import Contacts"}
             </Button>
           </DialogFooter>
         </DialogContent>

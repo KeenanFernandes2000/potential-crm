@@ -1024,6 +1024,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Bulk import contacts to a list
+  app.post("/api/lists/:id/bulk-import", async (req, res) => {
+    try {
+      const listId = parseInt(req.params.id);
+      const { contacts } = req.body;
+      
+      if (!contacts || !Array.isArray(contacts)) {
+        return res.status(400).json({ error: "Contacts array is required" });
+      }
+
+      const createdContacts = [];
+      for (const contactData of contacts) {
+        if (contactData.email) {
+          try {
+            // Check if contact already exists
+            const existingContacts = await storage.getContacts();
+            const existingContact = existingContacts.find(c => c.email === contactData.email);
+            
+            if (!existingContact) {
+              // Create new contact
+              const newContact = await storage.createContact({
+                firstName: contactData.firstName || '',
+                lastName: contactData.lastName || '',
+                email: contactData.email,
+                phone: contactData.phone || null,
+                jobTitle: contactData.jobTitle || null,
+                company: contactData.company || null,
+                country: null,
+                source: 'bulk_import',
+                tags: [],
+                notes: null,
+                leadScore: null,
+                lastContactDate: null,
+                sourceDetails: null
+              });
+              createdContacts.push(newContact);
+            }
+          } catch (error) {
+            console.error(`Error creating contact ${contactData.email}:`, error);
+          }
+        }
+      }
+
+      res.json({ 
+        success: true, 
+        message: `Successfully imported ${createdContacts.length} contacts`,
+        importedCount: createdContacts.length,
+        totalProvided: contacts.length
+      });
+    } catch (error) {
+      console.error("Error bulk importing contacts:", error);
+      res.status(500).json({ error: "Failed to import contacts" });
+    }
+  });
+
   // Forms
   app.get("/api/forms", async (req, res) => {
     try {
