@@ -35,6 +35,21 @@ const Dashboard = () => {
   });
   const [isAddTaskOpen, setIsAddTaskOpen] = useState(false);
 
+  // Reset form when dialog opens
+  const handleOpenAddTask = () => {
+    const today = new Date();
+    const formattedDate = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
+    
+    form.reset({
+      title: "",
+      description: "",
+      priority: "Medium",
+      completed: false,
+      dueDate: formattedDate,
+    });
+    setIsAddTaskOpen(true);
+  };
+
   const taskFormSchema = insertTaskSchema.extend({
     dueDate: z.string().min(1, "Due date is required"),
   });
@@ -203,7 +218,7 @@ const Dashboard = () => {
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-semibold">Tasks</h2>
-            <Button variant="secondary" size="sm" onClick={() => setIsAddTaskOpen(true)}>
+            <Button variant="secondary" size="sm" onClick={handleOpenAddTask}>
               Add Task
             </Button>
           </div>
