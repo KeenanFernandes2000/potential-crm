@@ -128,8 +128,33 @@ const Dashboard = () => {
     }
   });
 
+  // Delete task mutation
+  const deleteTaskMutation = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("DELETE", `/api/tasks/${id}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+      toast({
+        title: "Task deleted",
+        description: "The task has been deleted successfully.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Failed to delete task",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+
   const handleTaskComplete = (id: number, completed: boolean) => {
     updateTaskMutation.mutate({ id, completed });
+  };
+
+  const handleTaskDelete = (id: number) => {
+    deleteTaskMutation.mutate(id);
   };
 
   const onSubmit = (data: z.infer<typeof taskFormSchema>) => {
@@ -234,6 +259,7 @@ const Dashboard = () => {
             <TaskList 
               tasks={tasks || []} 
               onComplete={handleTaskComplete} 
+              onDelete={handleTaskDelete}
             />
           )}
         </div>

@@ -1,11 +1,14 @@
 import { Task } from "@shared/schema";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { Trash2 } from "lucide-react";
 
 interface TaskListProps {
   tasks: Task[];
   onComplete: (id: number, completed: boolean) => void;
+  onDelete: (id: number) => void;
 }
 
 const getPriorityBadgeClasses = (priority: string) => {
@@ -21,7 +24,7 @@ const getPriorityBadgeClasses = (priority: string) => {
   }
 };
 
-export function TaskList({ tasks, onComplete }: TaskListProps) {
+export function TaskList({ tasks, onComplete, onDelete }: TaskListProps) {
   const formatDueDate = (dueDate: Date | null) => {
     if (!dueDate) return "No due date";
     
@@ -76,12 +79,22 @@ export function TaskList({ tasks, onComplete }: TaskListProps) {
               {task.dueDate ? formatDueDate(new Date(task.dueDate)) : "No due date"}
             </p>
           </div>
-          <span className={cn(
-            "px-2 py-1 text-xs rounded-full",
-            getPriorityBadgeClasses(task.priority)
-          )}>
-            {task.priority}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className={cn(
+              "px-2 py-1 text-xs rounded-full",
+              getPriorityBadgeClasses(task.priority || "Medium")
+            )}>
+              {task.priority || "Medium"}
+            </span>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onDelete(task.id)}
+              className="h-8 w-8 p-0 text-gray-500 hover:text-red-500"
+            >
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
       ))}
     </div>
