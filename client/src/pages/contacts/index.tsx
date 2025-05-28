@@ -1,10 +1,11 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Contact } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown, MoreHorizontal, Plus, FileUp, FileDown, Activity } from "lucide-react";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -15,35 +16,154 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import ContactForm from "./ContactForm";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 
 const Contacts = () => {
   const { toast } = useToast();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
+  const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
+  const [csvData, setCsvData] = useState<string[][]>([]);
+  const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
 
   const { data: contacts, isLoading } = useQuery<Contact[]>({
     queryKey: ["/api/contacts"],
   });
 
-  const handleEdit = (contact: Contact) => {
-    setEditingContact(contact);
-    setIsCreateModalOpen(true);
+  // Bulk import mutation
+  const bulkImportContacts = useMutation({
+    mutationFn: (contactsData: any[]) => 
+      apiRequest("/api/contacts/bulk-import", "POST", { contacts: contactsData }),
+    onSuccess: (data) => {
+      toast({
+        title: "Import successful",
+        description: `Successfully imported ${data.importedCount} contacts`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/contacts"] });
+      setIsBulkImportOpen(false);
+      setCsvData([]);
+      setColumnMapping({});
+    },
+    onError: () => {
+      toast({
+        title: "Import failed",
+        description: "Failed to import contacts. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleImport = () => {
+    setIsBulkImportOpen(true);
   };
 
   const handleExport = () => {
+    if (!contacts || contacts.length === 0) {
+      toast({
+        title: "No data to export",
+        description: "There are no contacts to export.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Create CSV content
+    const headers = ["First Name", "Last Name", "Email", "Phone", "Job Title", "Company"];
+    const csvContent = [
+      headers.join(","),
+      ...contacts.map(contact => [
+        contact.firstName || "",
+        contact.lastName || "",
+        contact.email || "",
+        contact.phone || "",
+        contact.jobTitle || "",
+        contact.companyId || ""
+      ].map(field => `"${field}"`).join(","))
+    ].join("\n");
+
+    // Download CSV file
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `contacts-${new Date().toISOString().split('T')[0]}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
     toast({
-      title: "Exporting contacts",
-      description: "Your contacts will be exported as a CSV file shortly.",
+      title: "Export successful",
+      description: `Exported ${contacts.length} contacts to CSV file`,
     });
   };
 
-  const handleImport = () => {
-    toast({
-      title: "Import contacts",
-      description: "This feature is coming soon.",
-    });
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      const lines = text.split('\n').filter(line => line.trim());
+      const data = lines.map(line => {
+        // Simple CSV parsing (handles basic cases)
+        const values = [];
+        let current = '';
+        let inQuotes = false;
+        
+        for (let i = 0; i < line.length; i++) {
+          const char = line[i];
+          if (char === '"') {
+            inQuotes = !inQuotes;
+          } else if (char === ',' && !inQuotes) {
+            values.push(current.trim());
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        values.push(current.trim());
+        
+        return values;
+      });
+      
+      setCsvData(data);
+      setColumnMapping({});
+    };
+    reader.readAsText(file);
+  };
+
+  const handleImportContacts = () => {
+    if (!csvData.length || !Object.values(columnMapping).includes('email')) {
+      toast({
+        title: "Invalid mapping",
+        description: "Please map at least the Email column before importing.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const [headers, ...rows] = csvData;
+    const contactsToImport = rows.map(row => {
+      const contact: any = {};
+      headers.forEach((header, index) => {
+        const mappedField = columnMapping[`column_${index}`];
+        if (mappedField && row[index]) {
+          contact[mappedField] = row[index];
+        }
+      });
+      return contact;
+    }).filter(contact => contact.email); // Only import contacts with email
+
+    bulkImportContacts.mutate(contactsToImport);
+  };
+
+  const handleEdit = (contact: Contact) => {
+    setEditingContact(contact);
+    setIsCreateModalOpen(true);
   };
 
   const closeModal = () => {

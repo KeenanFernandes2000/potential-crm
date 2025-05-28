@@ -1050,12 +1050,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 email: contactData.email,
                 phone: contactData.phone || null,
                 jobTitle: contactData.jobTitle || null,
-                company: contactData.company || null,
+                companyId: null,
                 country: null,
                 source: 'bulk_import',
                 tags: [],
                 notes: null,
-                leadScore: null,
                 lastContactDate: null,
                 sourceDetails: null
               });
