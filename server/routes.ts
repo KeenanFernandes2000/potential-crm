@@ -760,7 +760,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const data = req.body;
       // Convert dueDate string to Date object if provided
       if (data.dueDate && typeof data.dueDate === 'string') {
-        data.dueDate = new Date(data.dueDate);
+        // Handle both YYYY-MM-DD and DD/MM/YYYY formats
+        if (data.dueDate.includes('/')) {
+          const [day, month, year] = data.dueDate.split('/');
+          data.dueDate = new Date(year, month - 1, day);
+        } else {
+          data.dueDate = new Date(data.dueDate);
+        }
       }
       const validatedData = insertTaskSchema.parse(data);
       const task = await storage.createTask(validatedData);
