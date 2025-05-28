@@ -458,11 +458,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const data = insertDealSchema.parse(req.body);
       console.log("Parsed deal data:", JSON.stringify(data, null, 2));
       
-      // Convert string dates to Date objects for database
+      // Convert string dates to proper format for database
       const dealData = {
         ...data,
-        startDate: data.startDate ? new Date(data.startDate) : null,
-        expiryDate: data.expiryDate ? new Date(data.expiryDate) : null,
+        startDate: data.startDate || null,
+        expiryDate: data.expiryDate || null,
       };
       
       const deal = await storage.createDeal(dealData);
@@ -623,10 +623,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           };
       
       // Import email service here to avoid circular dependencies
-      const { sendEmail, formatQuotationEmail } = await import('./services/emailService');
+      const { sendEmail } = await import('./services/emailService');
       
-      // Format email content
-      const emailHtml = formatQuotationEmail(quotation, contact, companyName, template);
+      // Format email content with basic template
+      const emailHtml = `<h2>${template.emailSubject}</h2><p>${template.emailBody}</p>`;
       
       // Replace template variables in subject
       const emailSubject = template.emailSubject.replace(/{{quotationNumber}}/g, quotation.id.toString());
@@ -634,12 +634,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send email if SendGrid API key is configured
       let emailSent = false;
       if (process.env.SENDGRID_API_KEY) {
-        emailSent = await sendEmail({
-          to: contact.email,
-          from: "sales@yourcompany.com", // This must be a verified sender in SendGrid
-          subject: emailSubject,
-          html: emailHtml
-        });
+        emailSent = await sendEmail(
+          contact.email,
+          "sales@yourcompany.com", // This must be a verified sender in SendGrid
+          emailSubject,
+          emailHtml
+        );
       } else {
         console.log("SendGrid API key not set - email would have been sent with content:", emailHtml);
       }
@@ -1024,10 +1024,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Bulk import contacts to a list
-  app.post("/api/lists/:id/bulk-import", async (req, res) => {
+  // Bulk import contacts
+  app.post("/api/contacts/bulk-import", async (req, res) => {
     try {
-      const listId = parseInt(req.params.id);
       const { contacts } = req.body;
       
       if (!contacts || !Array.isArray(contacts)) {
@@ -1055,7 +1054,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 source: 'bulk_import',
                 tags: [],
                 notes: null,
-                lastContactDate: null,
                 sourceDetails: null
               });
               createdContacts.push(newContact);
