@@ -190,7 +190,7 @@ const Forms = () => {
               <DropdownMenuItem onClick={() => handleEditForm(form)}>
                 Edit
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => window.location.href = `/forms/${form.id}/submissions`}>
+              <DropdownMenuItem onClick={() => window.location.href = `/forms/submissions/${form.id}`}>
                 View submissions
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleCopyEmbedCode(form.id)}>
