@@ -783,7 +783,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log("Converted dueDate:", data.dueDate);
       }
       
-      console.log("Data before validation:", JSON.stringify(data, null, 2));
+      console.log("Data after conversion:", JSON.stringify(data, null, 2));
       const validatedData = insertTaskSchema.parse(data);
       const task = await storage.createTask(validatedData);
       res.status(201).json(task);

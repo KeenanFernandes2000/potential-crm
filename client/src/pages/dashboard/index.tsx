@@ -50,7 +50,11 @@ const Dashboard = () => {
     setIsAddTaskOpen(true);
   };
 
-  const taskFormSchema = insertTaskSchema.extend({
+  const taskFormSchema = z.object({
+    title: z.string().min(1, "Title is required"),
+    description: z.string().optional(),
+    priority: z.string().default("Medium"),
+    completed: z.boolean().default(false),
     dueDate: z.string().min(1, "Due date is required"),
   });
 
