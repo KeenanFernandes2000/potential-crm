@@ -971,6 +971,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.patch("/api/lists/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const data = insertListSchema.parse(req.body);
+      const list = await storage.updateList(id, data);
+      if (!list) {
+        return res.status(404).json({ message: "List not found" });
+      }
+      res.json(list);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid list data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update list" });
+    }
+  });
+
+  app.delete("/api/lists/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteList(id);
+      if (!success) {
+        return res.status(404).json({ message: "List not found" });
+      }
+      res.status(204).send();
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete list" });
+    }
+  });
+
   // Forms
   app.get("/api/forms", async (req, res) => {
     try {
