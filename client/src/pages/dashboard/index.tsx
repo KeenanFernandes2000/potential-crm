@@ -38,7 +38,7 @@ const Dashboard = () => {
   // Reset form when dialog opens
   const handleOpenAddTask = () => {
     const today = new Date();
-    const formattedDate = `${String(today.getDate()).padStart(2, '0')}/${String(today.getMonth() + 1).padStart(2, '0')}/${today.getFullYear()}`;
+    const formattedDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
     
     form.reset({
       title: "",
