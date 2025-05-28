@@ -38,7 +38,10 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 const Lists = () => {
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isManageContactsOpen, setIsManageContactsOpen] = useState(false);
   const [editingList, setEditingList] = useState<List | null>(null);
+  const [managingList, setManagingList] = useState<List | null>(null);
+  const [selectedContacts, setSelectedContacts] = useState<number[]>([]);
   const { toast } = useToast();
 
   const { data: lists, isLoading } = useQuery<List[]>({
@@ -144,6 +147,42 @@ const Lists = () => {
     }
   };
 
+  const handleManageContacts = (list: List) => {
+    setManagingList(list);
+    setSelectedContacts([]);
+    setIsManageContactsOpen(true);
+  };
+
+  const addContactsToList = useMutation({
+    mutationFn: ({ listId, contactIds }: { listId: number; contactIds: number[] }) => 
+      apiRequest(`/api/lists/${listId}/contacts`, "POST", { contactIds }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/lists"] });
+      setIsManageContactsOpen(false);
+      setSelectedContacts([]);
+      toast({
+        title: "Success",
+        description: "Contacts added to list successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to add contacts to list",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleAddContactsToList = () => {
+    if (managingList && selectedContacts.length > 0) {
+      addContactsToList.mutate({ 
+        listId: managingList.id, 
+        contactIds: selectedContacts 
+      });
+    }
+  };
+
   const columns: ColumnDef<List>[] = [
     {
       accessorKey: "name",
@@ -222,9 +261,9 @@ const Lists = () => {
                 <Edit className="mr-2 h-4 w-4" />
                 Edit
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleManageContacts(list)}>
                 <Eye className="mr-2 h-4 w-4" />
-                View contacts
+                Manage contacts
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <Download className="mr-2 h-4 w-4" />
@@ -434,6 +473,64 @@ const Lists = () => {
       )}
 
       <EditListDialog />
+
+      {/* Manage Contacts Dialog */}
+      <Dialog open={isManageContactsOpen} onOpenChange={setIsManageContactsOpen}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Manage Contacts - {managingList?.name}</DialogTitle>
+            <DialogDescription>
+              Select contacts to add to this list.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-96 overflow-y-auto">
+            {contacts && contacts.length > 0 ? (
+              <div className="space-y-2">
+                {contacts.map((contact) => (
+                  <div key={contact.id} className="flex items-center space-x-3 p-2 border rounded">
+                    <Checkbox
+                      checked={selectedContacts.includes(contact.id)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          setSelectedContacts([...selectedContacts, contact.id]);
+                        } else {
+                          setSelectedContacts(selectedContacts.filter(id => id !== contact.id));
+                        }
+                      }}
+                    />
+                    <div className="flex-1">
+                      <div className="font-medium">
+                        {contact.firstName} {contact.lastName}
+                      </div>
+                      <div className="text-sm text-gray-500">{contact.email}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                No contacts available. Create some contacts first to add them to lists.
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={() => setIsManageContactsOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button 
+              type="button"
+              onClick={handleAddContactsToList}
+              disabled={selectedContacts.length === 0 || addContactsToList.isPending}
+            >
+              {addContactsToList.isPending ? "Adding..." : `Add ${selectedContacts.length} Contact${selectedContacts.length !== 1 ? 's' : ''}`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 };
