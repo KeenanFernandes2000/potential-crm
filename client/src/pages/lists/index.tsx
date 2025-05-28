@@ -4,7 +4,7 @@ import { List, insertListSchema, InsertList, Contact } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown, MoreHorizontal, Plus, Tags, Activity, Edit, Eye, Download, Trash2 } from "lucide-react";
+import { ArrowUpDown, MoreHorizontal, Plus, Tags, Activity, Edit, Eye, Download, Trash2, Upload } from "lucide-react";
 import { 
   DropdownMenu,
   DropdownMenuContent,
