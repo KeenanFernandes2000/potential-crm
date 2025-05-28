@@ -317,13 +317,65 @@ export class DatabaseStorage implements IStorage {
       isWon: name === 'Closed Won'
     }));
 
+    // Calculate Direct vs Partner funnel values
+    const directDeals = allDeals.filter(deal => !deal.partnerId);
+    const partnerDeals = allDeals.filter(deal => deal.partnerId);
+
+    // Calculate total funnel values (all open deals + closed won)
+    const directFunnelValue = directDeals
+      .filter(deal => !['Closed Lost'].includes(deal.stage || ''))
+      .reduce((sum, deal) => sum + (deal.value || 0), 0);
+    
+    const partnerFunnelValue = partnerDeals
+      .filter(deal => !['Closed Lost'].includes(deal.stage || ''))
+      .reduce((sum, deal) => sum + (deal.value || 0), 0);
+
+    const totalFunnelValue = directFunnelValue + partnerFunnelValue;
+
+    const formattedDirectFunnelValue = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(directFunnelValue);
+
+    const formattedPartnerFunnelValue = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(partnerFunnelValue);
+
+    const formattedTotalFunnelValue = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(totalFunnelValue);
+
     return {
       totalLeads,
       openDeals: openDealsCount,
       revenue: formattedRevenue,
       conversionRate: `${conversionRate}%`,
       pipelineStages,
-      recentActivities: allActivities
+      recentActivities: allActivities,
+      funnelBreakdown: {
+        direct: {
+          value: directFunnelValue,
+          formatted: formattedDirectFunnelValue,
+          percentage: totalFunnelValue > 0 ? Math.round((directFunnelValue / totalFunnelValue) * 100) : 0
+        },
+        partner: {
+          value: partnerFunnelValue,
+          formatted: formattedPartnerFunnelValue,
+          percentage: totalFunnelValue > 0 ? Math.round((partnerFunnelValue / totalFunnelValue) * 100) : 0
+        },
+        total: {
+          value: totalFunnelValue,
+          formatted: formattedTotalFunnelValue
+        }
+      }
     };
   }
 

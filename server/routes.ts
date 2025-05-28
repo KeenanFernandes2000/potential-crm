@@ -1239,6 +1239,53 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Export data
+  app.get("/api/export", async (req, res) => {
+    try {
+      const [contacts, companies, partners, deals, tasks, activities, lists, forms] = await Promise.all([
+        storage.getContacts(),
+        storage.getCompanies(),
+        storage.getPartners(),
+        storage.getDeals(),
+        storage.getTasks(),
+        storage.getActivities(),
+        storage.getLists(),
+        storage.getForms()
+      ]);
+
+      const exportData = {
+        exportDate: new Date().toISOString(),
+        contacts,
+        companies,
+        partners,
+        deals,
+        tasks,
+        activities,
+        lists,
+        forms,
+        summary: {
+          totalContacts: contacts.length,
+          totalCompanies: companies.length,
+          totalPartners: partners.length,
+          totalDeals: deals.length,
+          totalTasks: tasks.length,
+          totalActivities: activities.length,
+          totalLists: lists.length,
+          totalForms: forms.length
+        }
+      };
+
+      // Set headers for JSON download
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename="crm-export-${new Date().toISOString().split('T')[0]}.json"`);
+      
+      res.json(exportData);
+    } catch (error) {
+      console.error("Export error:", error);
+      res.status(500).json({ message: "Failed to export data" });
+    }
+  });
+
   // Email Templates
   app.get("/api/email-templates", async (req, res) => {
     try {

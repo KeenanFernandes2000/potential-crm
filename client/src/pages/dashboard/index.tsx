@@ -161,6 +161,37 @@ const Dashboard = () => {
     createTaskMutation.mutate(data);
   };
 
+  const handleExport = async () => {
+    try {
+      const response = await fetch('/api/export');
+      if (!response.ok) {
+        throw new Error('Export failed');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = `crm-export-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+      
+      toast({
+        title: "Export successful",
+        description: "Your CRM data has been exported successfully.",
+      });
+    } catch (error) {
+      toast({
+        title: "Export failed",
+        description: "Failed to export data. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   // Pipeline stages data - will be calculated from real deals data
   const pipelineStages: PipelineStage[] = stats?.pipelineStages || [
     { name: "New Leads", count: 0, percentage: 0 },
@@ -219,6 +250,37 @@ const Dashboard = () => {
           icon={BarChart3}
           iconColor="text-primary-500"
           iconBgColor="bg-primary-100"
+        />
+      </div>
+
+      {/* Funnel Value Breakdown */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+        <StatisticCard
+          title="Direct Deals"
+          value={statsLoading ? "Loading..." : stats?.funnelBreakdown?.direct?.formatted || "$0"}
+          change={0}
+          icon={DollarSign}
+          iconColor="text-blue-500"
+          iconBgColor="bg-blue-100"
+          description={`${stats?.funnelBreakdown?.direct?.percentage || 0}% of total funnel`}
+        />
+        <StatisticCard
+          title="Partner Deals"
+          value={statsLoading ? "Loading..." : stats?.funnelBreakdown?.partner?.formatted || "$0"}
+          change={0}
+          icon={Users}
+          iconColor="text-green-500"
+          iconBgColor="bg-green-100"
+          description={`${stats?.funnelBreakdown?.partner?.percentage || 0}% of total funnel`}
+        />
+        <StatisticCard
+          title="Total Funnel Value"
+          value={statsLoading ? "Loading..." : stats?.funnelBreakdown?.total?.formatted || "$0"}
+          change={0}
+          icon={BarChart3}
+          iconColor="text-purple-500"
+          iconBgColor="bg-purple-100"
+          description="All active deals"
         />
       </div>
 
