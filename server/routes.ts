@@ -634,12 +634,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Send email if SendGrid API key is configured
       let emailSent = false;
       if (process.env.SENDGRID_API_KEY) {
-        emailSent = await sendEmail(
-          contact.email,
-          "sales@yourcompany.com", // This must be a verified sender in SendGrid
-          emailSubject,
-          emailHtml
-        );
+        try {
+          emailSent = await sendEmail(
+            contact.email,
+            "sales@yourcompany.com",
+            emailSubject,
+            emailHtml
+          );
+        } catch (error) {
+          console.error("Email sending failed:", error);
+          emailSent = false;
+        }
       } else {
         console.log("SendGrid API key not set - email would have been sent with content:", emailHtml);
       }
