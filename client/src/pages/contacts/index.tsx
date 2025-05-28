@@ -34,12 +34,15 @@ const Contacts = () => {
 
   // Bulk import mutation
   const bulkImportContacts = useMutation({
-    mutationFn: (contactsData: any[]) => 
-      apiRequest("/api/contacts/bulk-import", "POST", { contacts: contactsData }),
+    mutationFn: async (contactsData: any[]) => {
+      const response = await apiRequest("POST", "/api/contacts/bulk-import", { contacts: contactsData });
+      return await response.json();
+    },
     onSuccess: (data) => {
+      const count = data.createdContacts?.length || 0;
       toast({
         title: "Import successful",
-        description: `Successfully imported ${data.importedCount} contacts`,
+        description: `Successfully imported ${count} contacts`,
       });
       queryClient.invalidateQueries({ queryKey: ["/api/contacts"] });
       setIsBulkImportOpen(false);
@@ -57,6 +60,59 @@ const Contacts = () => {
 
   const handleImport = () => {
     setIsBulkImportOpen(true);
+  };
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const text = e.target?.result as string;
+      const rows = text.split('\n').map(row => row.split(',').map(cell => cell.trim().replace(/^"|"$/g, '')));
+      setCsvData(rows.filter(row => row.some(cell => cell.length > 0)));
+      
+      // Auto-map common column names
+      if (rows.length > 0) {
+        const headers = rows[0];
+        const autoMapping: Record<string, string> = {};
+        
+        headers.forEach(header => {
+          const lowerHeader = header.toLowerCase();
+          if (lowerHeader.includes('first') && lowerHeader.includes('name')) {
+            autoMapping[header] = 'firstName';
+          } else if (lowerHeader.includes('last') && lowerHeader.includes('name')) {
+            autoMapping[header] = 'lastName';
+          } else if (lowerHeader.includes('email')) {
+            autoMapping[header] = 'email';
+          } else if (lowerHeader.includes('phone')) {
+            autoMapping[header] = 'phone';
+          } else if (lowerHeader.includes('job') || lowerHeader.includes('title')) {
+            autoMapping[header] = 'jobTitle';
+          }
+        });
+        
+        setColumnMapping(autoMapping);
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const performImport = async () => {
+    if (csvData.length === 0) return;
+
+    const contactsToImport = csvData.slice(1).map(row => {
+      const contact: any = {};
+      csvData[0].forEach((header, index) => {
+        const mappedField = columnMapping[header];
+        if (mappedField && row[index]) {
+          contact[mappedField] = row[index];
+        }
+      });
+      return contact;
+    }).filter(contact => contact.email); // Only import contacts with email
+
+    bulkImportContacts.mutate(contactsToImport);
   };
 
   const handleExport = () => {
@@ -100,41 +156,7 @@ const Contacts = () => {
     });
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target?.result as string;
-      const lines = text.split('\n').filter(line => line.trim());
-      const data = lines.map(line => {
-        // Simple CSV parsing (handles basic cases)
-        const values = [];
-        let current = '';
-        let inQuotes = false;
-        
-        for (let i = 0; i < line.length; i++) {
-          const char = line[i];
-          if (char === '"') {
-            inQuotes = !inQuotes;
-          } else if (char === ',' && !inQuotes) {
-            values.push(current.trim());
-            current = '';
-          } else {
-            current += char;
-          }
-        }
-        values.push(current.trim());
-        
-        return values;
-      });
-      
-      setCsvData(data);
-      setColumnMapping({});
-    };
-    reader.readAsText(file);
-  };
 
   const handleImportContacts = () => {
     if (!csvData.length || !Object.values(columnMapping).includes('email')) {
@@ -322,6 +344,119 @@ const Contacts = () => {
             contact={editingContact} 
             onClose={closeModal} 
           />
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Import Dialog */}
+      <Dialog open={isBulkImportOpen} onOpenChange={setIsBulkImportOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-auto">
+          <DialogHeader>
+            <DialogTitle>Import Contacts from CSV</DialogTitle>
+            <DialogDescription>
+              Upload a CSV file to import multiple contacts at once. The first row should contain column headers.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* File Upload */}
+            <div>
+              <Input 
+                type="file" 
+                accept=".csv" 
+                onChange={handleFileUpload}
+                className="mb-4"
+              />
+              <p className="text-sm text-muted-foreground">
+                Supported format: CSV files with headers (First Name, Last Name, Email, Phone, Job Title)
+              </p>
+            </div>
+
+            {/* Preview and Column Mapping */}
+            {csvData.length > 0 && (
+              <div>
+                <h4 className="font-medium mb-3">Preview & Column Mapping</h4>
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="bg-muted p-2 border-b">
+                    <div className="grid grid-cols-5 gap-2 text-sm font-medium">
+                      <div>CSV Column</div>
+                      <div>Maps to</div>
+                      <div>Sample Data</div>
+                      <div>Required</div>
+                      <div>Action</div>
+                    </div>
+                  </div>
+                  <div className="max-h-64 overflow-y-auto">
+                    {csvData[0]?.map((header, index) => (
+                      <div key={index} className="grid grid-cols-5 gap-2 p-2 border-b text-sm">
+                        <div className="font-medium">{header}</div>
+                        <div>
+                          <select 
+                            value={columnMapping[header] || ""} 
+                            onChange={(e) => setColumnMapping({...columnMapping, [header]: e.target.value})}
+                            className="w-full p-1 border rounded"
+                          >
+                            <option value="">Skip this column</option>
+                            <option value="firstName">First Name</option>
+                            <option value="lastName">Last Name</option>
+                            <option value="email">Email</option>
+                            <option value="phone">Phone</option>
+                            <option value="jobTitle">Job Title</option>
+                          </select>
+                        </div>
+                        <div className="text-muted-foreground truncate">
+                          {csvData[1]?.[index] || "No data"}
+                        </div>
+                        <div>
+                          {(columnMapping[header] === "firstName" || columnMapping[header] === "lastName" || columnMapping[header] === "email") && (
+                            <Badge variant="destructive" className="text-xs">Required</Badge>
+                          )}
+                        </div>
+                        <div>
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => {
+                              const newMapping = {...columnMapping};
+                              delete newMapping[header];
+                              setColumnMapping(newMapping);
+                            }}
+                          >
+                            Skip
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <div className="mt-4 p-3 bg-muted rounded-lg">
+                  <p className="text-sm">
+                    <strong>Preview:</strong> {csvData.length - 1} contacts will be imported
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="flex justify-between">
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setIsBulkImportOpen(false);
+                setCsvData([]);
+                setColumnMapping({});
+              }}
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={performImport}
+              disabled={csvData.length === 0 || bulkImportContacts.isPending}
+              className="min-w-24"
+            >
+              {bulkImportContacts.isPending ? "Importing..." : "Import Contacts"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </section>
