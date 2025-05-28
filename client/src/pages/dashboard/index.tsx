@@ -324,7 +324,8 @@ const Dashboard = () => {
                     <FormLabel>Due Date</FormLabel>
                     <FormControl>
                       <Input 
-                        type="date" 
+                        type="text" 
+                        placeholder="YYYY-MM-DD (e.g., 2025-06-28)"
                         {...field} 
                         value={field.value || ""}
                       />
