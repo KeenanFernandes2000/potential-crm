@@ -758,8 +758,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/tasks", async (req, res) => {
     try {
       const data = req.body;
+      console.log("Received task data:", JSON.stringify(data, null, 2));
+      
       // Convert dueDate string to Date object if provided
       if (data.dueDate && typeof data.dueDate === 'string') {
+        console.log("Original dueDate:", data.dueDate);
         // Handle both YYYY-MM-DD and DD/MM/YYYY formats
         if (data.dueDate.includes('/')) {
           const [day, month, year] = data.dueDate.split('/');
@@ -767,14 +770,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } else {
           data.dueDate = new Date(data.dueDate);
         }
+        console.log("Converted dueDate:", data.dueDate);
       }
+      
+      console.log("Data before validation:", JSON.stringify(data, null, 2));
       const validatedData = insertTaskSchema.parse(data);
       const task = await storage.createTask(validatedData);
       res.status(201).json(task);
     } catch (error) {
       if (error instanceof z.ZodError) {
+        console.error("Validation errors:", error.errors);
         return res.status(400).json({ message: "Invalid task data", errors: error.errors });
       }
+      console.error("Task creation error:", error);
       res.status(500).json({ message: "Failed to create task" });
     }
   });
