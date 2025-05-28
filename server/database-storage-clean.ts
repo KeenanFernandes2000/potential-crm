@@ -247,6 +247,7 @@ export class DatabaseStorage implements IStorage {
   async getDashboardStats(): Promise<any> {
     const allContacts = await db.select().from(contacts);
     const allDeals = await db.select().from(deals);
+    const allCompanies = await db.select().from(companies);
     const allActivities = await db.select().from(activities).orderBy(sql`created_at DESC`).limit(5);
     
     const totalLeads = allContacts.length;
@@ -317,17 +318,34 @@ export class DatabaseStorage implements IStorage {
       isWon: name === 'Closed Won'
     }));
 
-    // Calculate Direct vs Partner funnel values
-    const directDeals = allDeals.filter(deal => !deal.partnerId);
-    const partnerDeals = allDeals.filter(deal => deal.partnerId);
+    // Calculate Direct vs Partner funnel values based on company-partner relationship
+    const directDeals: any[] = [];
+    const partnerDeals: any[] = [];
+
+    allDeals.forEach(deal => {
+      if (deal.companyId) {
+        // Find the company for this deal
+        const company = allCompanies.find(c => c.id === deal.companyId);
+        if (company && company.partnerId) {
+          // Deal is through a partner (company has a partner)
+          partnerDeals.push(deal);
+        } else {
+          // Direct deal (company has no partner or no company)
+          directDeals.push(deal);
+        }
+      } else {
+        // No company assigned, treat as direct deal
+        directDeals.push(deal);
+      }
+    });
 
     // Calculate total funnel values (all open deals + closed won)
     const directFunnelValue = directDeals
-      .filter(deal => !['Closed Lost'].includes(deal.stage || ''))
+      .filter(deal => !['Closed Lost', 'Lost'].includes(deal.stage || ''))
       .reduce((sum, deal) => sum + (deal.value || 0), 0);
     
     const partnerFunnelValue = partnerDeals
-      .filter(deal => !['Closed Lost'].includes(deal.stage || ''))
+      .filter(deal => !['Closed Lost', 'Lost'].includes(deal.stage || ''))
       .reduce((sum, deal) => sum + (deal.value || 0), 0);
 
     const totalFunnelValue = directFunnelValue + partnerFunnelValue;
