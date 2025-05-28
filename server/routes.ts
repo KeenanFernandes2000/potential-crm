@@ -766,10 +766,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Handle both YYYY-MM-DD and DD/MM/YYYY formats
         if (data.dueDate.includes('/')) {
           const [day, month, year] = data.dueDate.split('/');
-          data.dueDate = new Date(year, month - 1, day);
+          data.dueDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+        } else if (data.dueDate.includes('-')) {
+          // Handle YYYY-MM-DD format
+          data.dueDate = new Date(data.dueDate + 'T00:00:00');
         } else {
           data.dueDate = new Date(data.dueDate);
         }
+        
+        // Validate the date
+        if (isNaN(data.dueDate.getTime())) {
+          console.error("Invalid date:", data.dueDate);
+          return res.status(400).json({ message: "Invalid date format" });
+        }
+        
         console.log("Converted dueDate:", data.dueDate);
       }
       
