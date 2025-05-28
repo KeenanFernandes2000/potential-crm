@@ -287,6 +287,20 @@ export class DatabaseStorage implements IStorage {
     return newList;
   }
 
+  async updateList(id: number, list: InsertList): Promise<List | undefined> {
+    const [updatedList] = await db
+      .update(lists)
+      .set(list)
+      .where(eq(lists.id, id))
+      .returning();
+    return updatedList;
+  }
+
+  async deleteList(id: number): Promise<boolean> {
+    await db.delete(lists).where(eq(lists.id, id));
+    return true;
+  }
+
   // Forms
   async getForms(): Promise<Form[]> {
     return db.select().from(forms);
