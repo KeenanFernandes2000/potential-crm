@@ -45,7 +45,7 @@ const Dashboard = () => {
       title: "",
       description: "",
       priority: "Medium",
-      status: "Todo",
+      completed: false,
       dueDate: "",
     },
   });
@@ -116,7 +116,7 @@ const Dashboard = () => {
     updateTaskMutation.mutate({ id, completed });
   };
 
-  const onSubmit = (data: z.infer<typeof insertTaskSchema>) => {
+  const onSubmit = (data: z.infer<typeof taskFormSchema>) => {
     createTaskMutation.mutate(data);
   };
 
@@ -286,23 +286,20 @@ const Dashboard = () => {
                 />
                 <FormField
                   control={form.control}
-                  name="status"
+                  name="completed"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Status</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select status" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="Todo">Todo</SelectItem>
-                          <SelectItem value="In Progress">In Progress</SelectItem>
-                          <SelectItem value="Completed">Completed</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                      <FormControl>
+                        <input
+                          type="checkbox"
+                          checked={field.value}
+                          onChange={field.onChange}
+                          className="mt-1"
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel>Mark as completed</FormLabel>
+                      </div>
                     </FormItem>
                   )}
                 />
