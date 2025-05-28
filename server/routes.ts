@@ -757,8 +757,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/tasks", async (req, res) => {
     try {
-      const data = insertTaskSchema.parse(req.body);
-      const task = await storage.createTask(data);
+      const data = req.body;
+      // Convert dueDate string to Date object if provided
+      if (data.dueDate && typeof data.dueDate === 'string') {
+        data.dueDate = new Date(data.dueDate);
+      }
+      const validatedData = insertTaskSchema.parse(data);
+      const task = await storage.createTask(validatedData);
       res.status(201).json(task);
     } catch (error) {
       if (error instanceof z.ZodError) {

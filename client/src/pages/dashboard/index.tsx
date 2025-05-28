@@ -68,10 +68,7 @@ const Dashboard = () => {
   // Create task mutation
   const createTaskMutation = useMutation({
     mutationFn: async (data: z.infer<typeof taskFormSchema>) => {
-      await apiRequest("POST", "/api/tasks", {
-        ...data,
-        dueDate: new Date(data.dueDate).toISOString(),
-      });
+      await apiRequest("POST", "/api/tasks", data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
