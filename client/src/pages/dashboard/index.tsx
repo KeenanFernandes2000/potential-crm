@@ -210,7 +210,7 @@ const Dashboard = () => {
             dateRange={dateRange} 
             setDateRange={setDateRange} 
           />
-          <Button variant="secondary" className="flex items-center">
+          <Button variant="secondary" className="flex items-center" onClick={handleExport}>
             <Download className="mr-2 h-4 w-4" />
             <span>Export</span>
           </Button>
