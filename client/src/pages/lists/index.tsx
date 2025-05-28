@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { List } from "@shared/schema";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { List, insertListSchema, InsertList, Contact } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown, MoreHorizontal, Plus, Tags, Activity } from "lucide-react";
+import { ArrowUpDown, MoreHorizontal, Plus, Tags, Activity, Edit, Eye, Download, Trash2 } from "lucide-react";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -16,11 +16,133 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { format } from "date-fns";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useToast } from "@/hooks/use-toast";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 const Lists = () => {
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingList, setEditingList] = useState<List | null>(null);
+  const { toast } = useToast();
+
   const { data: lists, isLoading } = useQuery<List[]>({
     queryKey: ["/api/lists"],
   });
+
+  const { data: contacts } = useQuery<Contact[]>({
+    queryKey: ["/api/contacts"],
+  });
+
+  const form = useForm<InsertList>({
+    resolver: zodResolver(insertListSchema),
+    defaultValues: {
+      name: "",
+      description: "",
+      isDynamic: false,
+      criteria: null,
+    },
+  });
+
+  const createListMutation = useMutation({
+    mutationFn: (data: InsertList) => apiRequest("/api/lists", "POST", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/lists"] });
+      setIsCreateDialogOpen(false);
+      form.reset();
+      toast({
+        title: "Success",
+        description: "List created successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create list",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const updateListMutation = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: InsertList }) => 
+      apiRequest(`/api/lists/${id}`, "PATCH", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/lists"] });
+      setIsEditDialogOpen(false);
+      setEditingList(null);
+      form.reset();
+      toast({
+        title: "Success",
+        description: "List updated successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update list",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteListMutation = useMutation({
+    mutationFn: (id: number) => apiRequest(`/api/lists/${id}`, "DELETE"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/lists"] });
+      toast({
+        title: "Success",
+        description: "List deleted successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete list",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const onSubmit = (data: InsertList) => {
+    if (editingList) {
+      updateListMutation.mutate({ id: editingList.id, data });
+    } else {
+      createListMutation.mutate(data);
+    }
+  };
+
+  const handleEdit = (list: List) => {
+    setEditingList(list);
+    form.reset({
+      name: list.name,
+      description: list.description || "",
+      isDynamic: list.isDynamic || false,
+      criteria: list.criteria as any,
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleDelete = (list: List) => {
+    if (confirm(`Are you sure you want to delete "${list.name}"? This action cannot be undone.`)) {
+      deleteListMutation.mutate(list.id);
+    }
+  };
 
   const columns: ColumnDef<List>[] = [
     {
@@ -66,8 +188,9 @@ const Lists = () => {
       accessorKey: "contactCount",
       header: "Contacts",
       cell: ({ row }) => {
-        // In a real app, this would be the count of contacts in the list
-        return Math.floor(Math.random() * 100);
+        const list = row.original;
+        // TODO: This should fetch actual contact count from the API
+        return "0";
       },
     },
     {
@@ -95,13 +218,24 @@ const Lists = () => {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>Actions</DropdownMenuLabel>
-              <DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleEdit(list)}>
+                <Edit className="mr-2 h-4 w-4" />
                 Edit
               </DropdownMenuItem>
-              <DropdownMenuItem>View contacts</DropdownMenuItem>
-              <DropdownMenuItem>Export contacts</DropdownMenuItem>
+              <DropdownMenuItem>
+                <Eye className="mr-2 h-4 w-4" />
+                View contacts
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <Download className="mr-2 h-4 w-4" />
+                Export contacts
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem className="text-red-600">
+              <DropdownMenuItem 
+                className="text-red-600" 
+                onClick={() => handleDelete(list)}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
                 Delete
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -111,14 +245,179 @@ const Lists = () => {
     },
   ];
 
-  return (
-    <section className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-semibold">Lists</h1>
+  const CreateListDialog = () => (
+    <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+      <DialogTrigger asChild>
         <Button>
           <Plus className="mr-2 h-4 w-4" />
           Create List
         </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Create New List</DialogTitle>
+          <DialogDescription>
+            Create a new contact list to organize your contacts.
+          </DialogDescription>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>List Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter list name..." {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="Enter list description..." 
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="isDynamic"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                  <FormControl>
+                    <Checkbox 
+                      checked={field.value} 
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>Dynamic List</FormLabel>
+                    <p className="text-sm text-muted-foreground">
+                      Automatically update based on criteria
+                    </p>
+                  </div>
+                </FormItem>
+              )}
+            />
+            <DialogFooter>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsCreateDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={createListMutation.isPending}
+              >
+                {createListMutation.isPending ? "Creating..." : "Create List"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+
+  const EditListDialog = () => (
+    <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Edit List</DialogTitle>
+          <DialogDescription>
+            Update the list details.
+          </DialogDescription>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>List Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter list name..." {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="Enter list description..." 
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="isDynamic"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                  <FormControl>
+                    <Checkbox 
+                      checked={field.value} 
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel>Dynamic List</FormLabel>
+                    <p className="text-sm text-muted-foreground">
+                      Automatically update based on criteria
+                    </p>
+                  </div>
+                </FormItem>
+              )}
+            />
+            <DialogFooter>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setIsEditDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={updateListMutation.isPending}
+              >
+                {updateListMutation.isPending ? "Updating..." : "Update List"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+
+  return (
+    <section className="p-6">
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-semibold">Lists</h1>
+        <CreateListDialog />
       </div>
 
       {isLoading ? (
@@ -133,6 +432,8 @@ const Lists = () => {
           searchPlaceholder="Search lists..."
         />
       )}
+
+      <EditListDialog />
     </section>
   );
 };
