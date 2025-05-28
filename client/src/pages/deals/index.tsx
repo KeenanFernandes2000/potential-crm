@@ -4,7 +4,8 @@ import { Deal } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { ColumnDef } from "@tanstack/react-table";
-import { ArrowUpDown, MoreHorizontal, Plus, Activity } from "lucide-react";
+import { ArrowUpDown, MoreHorizontal, Plus, Activity, Download } from "lucide-react";
+import * as XLSX from 'xlsx';
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -30,6 +31,10 @@ const Deals = () => {
   
   const { data: companies } = useQuery({
     queryKey: ["/api/companies"],
+  });
+
+  const { data: partners } = useQuery({
+    queryKey: ["/api/partners"],
   });
 
   const handleEdit = (deal: Deal) => {
@@ -81,12 +86,51 @@ const Deals = () => {
       case "Negotiation":
         return "default";
       case "Won":
-        return "success";
+        return "default";
       case "Lost":
         return "destructive";
       default:
         return "outline";
     }
+  };
+
+  const getPartnerName = (companyId: number) => {
+    if (!companies || !partners) return "Direct";
+    
+    const company = companies.find(c => c.id === companyId);
+    if (!company?.partnerId) return "Direct";
+    
+    const partner = partners.find(p => p.id === company.partnerId);
+    return partner ? partner.name : "Direct";
+  };
+
+  const exportToExcel = () => {
+    if (!deals || !companies || !partners) return;
+
+    const exportData = deals.map(deal => ({
+      "Deal Name": deal.title,
+      "Value": deal.value ? formatCurrency(deal.value, deal.currency || "USD") : "N/A",
+      "Company": companies.find(c => c.id === deal.companyId)?.name || `Company ${deal.companyId}`,
+      "Partner": getPartnerName(deal.companyId),
+      "Contact": `Contact ${deal.contactId}`,
+      "Stage": deal.stage,
+      "Start Date": deal.startDate ? format(new Date(deal.startDate), "MMM d, yyyy") : "N/A",
+      "Expiry Date": deal.expiryDate ? format(new Date(deal.expiryDate), "MMM d, yyyy") : "N/A",
+      "Currency": deal.currency || "USD",
+      "Notes": deal.notes || ""
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Deals");
+    
+    const fileName = `deals-export-${format(new Date(), "yyyy-MM-dd")}.xlsx`;
+    XLSX.writeFile(workbook, fileName);
+    
+    toast({
+      title: "Export successful",
+      description: `Deals have been exported to ${fileName}`,
+    });
   };
 
   const columns: ColumnDef<Deal>[] = [
@@ -126,6 +170,29 @@ const Deals = () => {
         
         const company = companies.find(c => c.id === companyId);
         return company ? company.name : `Company ${companyId}`;
+      },
+    },
+    {
+      accessorKey: "partner",
+      header: ({ column }) => {
+        return (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Partner
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        )
+      },
+      cell: ({ row }) => {
+        const companyId = row.getValue("companyId") as number;
+        return getPartnerName(companyId);
+      },
+      sortingFn: (rowA, rowB) => {
+        const partnerA = getPartnerName(rowA.getValue("companyId"));
+        const partnerB = getPartnerName(rowB.getValue("companyId"));
+        return partnerA.localeCompare(partnerB);
       },
     },
     {
@@ -197,10 +264,20 @@ const Deals = () => {
     <section className="p-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold">Deals</h1>
-        <Button onClick={() => setIsCreateModalOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Deal
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={exportToExcel}
+            disabled={!deals || deals.length === 0}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Export to Excel
+          </Button>
+          <Button onClick={() => setIsCreateModalOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Deal
+          </Button>
+        </div>
       </div>
 
       {isLoading ? (
