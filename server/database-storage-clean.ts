@@ -245,16 +245,85 @@ export class DatabaseStorage implements IStorage {
 
   // Dashboard stats
   async getDashboardStats(): Promise<any> {
-    const contactCount = await db.select({ count: sql`count(*)` }).from(contacts);
-    const dealCount = await db.select({ count: sql`count(*)` }).from(deals);
+    const allContacts = await db.select().from(contacts);
+    const allDeals = await db.select().from(deals);
+    const allActivities = await db.select().from(activities).orderBy(sql`created_at DESC`).limit(5);
     
+    const totalLeads = allContacts.length;
+    const totalDealsCount = allDeals.length;
+    
+    // Count open deals (not closed)
+    const openDealsCount = allDeals.filter(deal => 
+      deal.stage && !['Closed Won', 'Won', 'Closed Lost', 'Lost'].includes(deal.stage)
+    ).length;
+    
+    // Count closed won deals
+    const closedWonDeals = allDeals.filter(deal => 
+      deal.stage && ['Closed Won', 'Won'].includes(deal.stage)
+    );
+    const closedWonCount = closedWonDeals.length;
+    
+    // Calculate total revenue from closed won deals
+    const revenue = closedWonDeals.reduce((sum, deal) => sum + (deal.value || 0), 0);
+    
+    // Calculate conversion rate (closed won / total deals)
+    const conversionRate = totalDealsCount > 0 ? ((closedWonCount / totalDealsCount) * 100).toFixed(1) : "0";
+    
+    // Format revenue
+    const formattedRevenue = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(revenue);
+
+    // Calculate pipeline stages
+    const stageMapping = {
+      'Inquiry': 'New Leads',
+      'Lead': 'New Leads',
+      'Qualified': 'Qualified',
+      'Proposal': 'Proposal',
+      'Negotiation': 'Negotiation',
+      'Won': 'Closed Won',
+      'Closed Won': 'Closed Won'
+    };
+
+    const stageCounts: Record<string, number> = {
+      'New Leads': 0,
+      'Qualified': 0,
+      'Proposal': 0,
+      'Negotiation': 0,
+      'Closed Won': 0
+    };
+
+    // Count deals by stage
+    allDeals.forEach(deal => {
+      const stage = deal.stage;
+      if (stage && stageMapping[stage as keyof typeof stageMapping]) {
+        const mappedStage = stageMapping[stage as keyof typeof stageMapping];
+        stageCounts[mappedStage]++;
+      } else {
+        // Default unmapped stages to New Leads
+        stageCounts['New Leads']++;
+      }
+    });
+
+    // Calculate percentages
+    const pipelineStages = Object.entries(stageCounts).map(([name, count]) => ({
+      name,
+      count,
+      percentage: totalDealsCount > 0 ? Math.round((count / totalDealsCount) * 100) : 0,
+      isLast: name === 'Negotiation',
+      isWon: name === 'Closed Won'
+    }));
+
     return {
-      totalLeads: contactCount[0]?.count || 0,
-      openDeals: dealCount[0]?.count || 0,
-      revenue: "$0",
-      conversionRate: "0%",
-      topSources: [],
-      recentActivities: []
+      totalLeads,
+      openDeals: openDealsCount,
+      revenue: formattedRevenue,
+      conversionRate: `${conversionRate}%`,
+      pipelineStages,
+      recentActivities: allActivities
     };
   }
 
