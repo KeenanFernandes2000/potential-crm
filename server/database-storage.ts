@@ -435,11 +435,52 @@ export class DatabaseStorage implements IStorage {
       maximumFractionDigits: 0
     }).format(revenue);
 
+    // Calculate pipeline stages
+    const stageMapping = {
+      'Inquiry': 'New Leads',
+      'Lead': 'New Leads',
+      'Qualified': 'Qualified',
+      'Proposal': 'Proposal',
+      'Negotiation': 'Negotiation',
+      'Won': 'Closed Won',
+      'Closed Won': 'Closed Won'
+    };
+
+    const stageCounts: Record<string, number> = {
+      'New Leads': 0,
+      'Qualified': 0,
+      'Proposal': 0,
+      'Negotiation': 0,
+      'Closed Won': 0
+    };
+
+    // Count deals by stage
+    allDeals.forEach(deal => {
+      const stage = deal.stage;
+      if (stage && stageMapping[stage as keyof typeof stageMapping]) {
+        const mappedStage = stageMapping[stage as keyof typeof stageMapping];
+        stageCounts[mappedStage]++;
+      } else {
+        // Default unmapped stages to New Leads
+        stageCounts['New Leads']++;
+      }
+    });
+
+    // Calculate percentages
+    const pipelineStages = Object.entries(stageCounts).map(([name, count]) => ({
+      name,
+      count,
+      percentage: totalDealsCount > 0 ? Math.round((count / totalDealsCount) * 100) : 0,
+      isLast: name === 'Negotiation',
+      isWon: name === 'Closed Won'
+    }));
+
     return {
       totalLeads,
       openDeals: openDealsCount,
       revenue: formattedRevenue,
-      conversionRate: `${conversionRate}%`
+      conversionRate: `${conversionRate}%`,
+      pipelineStages
     };
   }
 
