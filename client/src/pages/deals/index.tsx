@@ -242,7 +242,17 @@ const Deals = () => {
     },
     {
       accessorKey: "companyId",
-      header: "Company",
+      header: ({ column }) => {
+        return (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Company
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        )
+      },
       cell: ({ row }) => {
         const companyId = row.getValue("companyId") as number;
         
@@ -252,6 +262,22 @@ const Deals = () => {
         
         const company = companies.find(c => c.id === companyId);
         return company ? company.name : `Company ${companyId}`;
+      },
+      sortingFn: (rowA, rowB) => {
+        const companyIdA = rowA.getValue("companyId") as number;
+        const companyIdB = rowB.getValue("companyId") as number;
+        
+        if (!companies || companies.length === 0) {
+          return companyIdA - companyIdB;
+        }
+        
+        const companyA = companies.find((c: any) => c.id === companyIdA);
+        const companyB = companies.find((c: any) => c.id === companyIdB);
+        
+        const nameA = companyA ? companyA.name : `Company ${companyIdA}`;
+        const nameB = companyB ? companyB.name : `Company ${companyIdB}`;
+        
+        return nameA.localeCompare(nameB);
       },
     },
     {
