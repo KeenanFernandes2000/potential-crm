@@ -25,6 +25,8 @@ import { eq, desc, and, sql } from "drizzle-orm";
 import { IStorage } from "./storage";
 
 export class DatabaseStorage implements IStorage {
+  private db = db;
+
   // User authentication methods
   async getUser(id: number): Promise<User | undefined> {
     const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
@@ -442,14 +444,52 @@ export class DatabaseStorage implements IStorage {
   async updateSocialCampaign(id: number, campaign: InsertSocialCampaign): Promise<SocialCampaign | undefined> { return undefined; }
   async deleteSocialCampaign(id: number): Promise<boolean> { return false; }
 
-  // Quotation methods (basic implementations)
-  async getQuotations(): Promise<Quotation[]> { return []; }
-  async getQuotation(id: number): Promise<Quotation | undefined> { return undefined; }
-  async getQuotationsByDeal(dealId: number): Promise<Quotation[]> { return []; }
-  async createQuotation(quotation: InsertQuotation): Promise<Quotation> { throw new Error("Not implemented"); }
-  async updateQuotation(id: number, quotation: InsertQuotation): Promise<Quotation | undefined> { return undefined; }
-  async deleteQuotation(id: number): Promise<boolean> { return false; }
-  async markQuotationAsEmailSent(id: number): Promise<Quotation | undefined> { return undefined; }
+  // Quotation methods
+  async getQuotations(): Promise<Quotation[]> {
+    const result = await db.select().from(quotations);
+    return result;
+  }
+
+  async getQuotation(id: number): Promise<Quotation | undefined> {
+    const result = await db.select().from(quotations).where(eq(quotations.id, id));
+    return result[0];
+  }
+
+  async getQuotationsByDeal(dealId: number): Promise<Quotation[]> {
+    const result = await db.select().from(quotations).where(eq(quotations.dealId, dealId));
+    return result;
+  }
+
+  async createQuotation(quotation: InsertQuotation): Promise<Quotation> {
+    const result = await db.insert(quotations).values({
+      ...quotation,
+      validUntil: quotation.validUntil ? new Date(quotation.validUntil) : null,
+    }).returning();
+    return result[0];
+  }
+
+  async updateQuotation(id: number, quotation: InsertQuotation): Promise<Quotation | undefined> {
+    const result = await db.update(quotations).set({
+      ...quotation,
+      validUntil: quotation.validUntil ? new Date(quotation.validUntil) : null,
+      updatedAt: new Date(),
+    }).where(eq(quotations.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteQuotation(id: number): Promise<boolean> {
+    const result = await db.delete(quotations).where(eq(quotations.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  async markQuotationAsEmailSent(id: number): Promise<Quotation | undefined> {
+    const result = await db.update(quotations).set({
+      emailSent: true,
+      emailSentAt: new Date(),
+      updatedAt: new Date(),
+    }).where(eq(quotations.id, id)).returning();
+    return result[0];
+  }
 
   // Quotation template methods (basic implementations)
   async getQuotationTemplates(): Promise<QuotationTemplate[]> { return []; }
