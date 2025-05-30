@@ -44,9 +44,9 @@ const Deals = () => {
   const [editingDeal, setEditingDeal] = useState<Deal | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
-    status: '',
-    company: '',
-    partner: '',
+    status: 'all',
+    company: 'all',
+    partner: 'all',
     minValue: '',
     maxValue: '',
     search: '',
@@ -75,18 +75,17 @@ const Deals = () => {
       }
 
       // Status filter
-      if (filters.status && deal.stage !== filters.status) {
+      if (filters.status !== 'all' && deal.stage !== filters.status) {
         return false;
       }
 
       // Company filter
-      if (filters.company && deal.companyId?.toString() !== filters.company) {
+      if (filters.company !== 'all' && deal.companyId?.toString() !== filters.company) {
         return false;
       }
 
       // Partner filter
-      if (filters.partner) {
-        const company = companies?.find((c: any) => c.id === deal.companyId);
+      if (filters.partner !== 'all') {
         const partnerName = getPartnerName(deal.companyId);
         if (partnerName !== filters.partner) {
           return false;
@@ -108,9 +107,9 @@ const Deals = () => {
   // Clear all filters
   const clearFilters = () => {
     setFilters({
-      status: '',
-      company: '',
-      partner: '',
+      status: 'all',
+      company: 'all',
+      partner: 'all',
       minValue: '',
       maxValue: '',
       search: '',
@@ -118,7 +117,7 @@ const Deals = () => {
   };
 
   // Check if any filters are active
-  const hasActiveFilters = Object.values(filters).some(value => value !== '');
+  const hasActiveFilters = filters.status !== 'all' || filters.company !== 'all' || filters.partner !== 'all' || filters.minValue !== '' || filters.maxValue !== '' || filters.search !== '';
 
   const handleEdit = (deal: Deal) => {
     setEditingDeal(deal);
@@ -406,7 +405,7 @@ const Deals = () => {
                       <SelectValue placeholder="All statuses" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All statuses</SelectItem>
+                      <SelectItem value="all">All statuses</SelectItem>
                       <SelectItem value="Inquiry">Inquiry</SelectItem>
                       <SelectItem value="Qualified">Qualified</SelectItem>
                       <SelectItem value="Proposal">Proposal</SelectItem>
@@ -424,7 +423,7 @@ const Deals = () => {
                       <SelectValue placeholder="All companies" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All companies</SelectItem>
+                      <SelectItem value="all">All companies</SelectItem>
                       {companies && Array.isArray(companies) && companies.map((company: any) => (
                         <SelectItem key={company.id} value={company.id.toString()}>
                           {company.name}
@@ -441,7 +440,7 @@ const Deals = () => {
                       <SelectValue placeholder="All partners" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All partners</SelectItem>
+                      <SelectItem value="all">All partners</SelectItem>
                       <SelectItem value="Direct">Direct</SelectItem>
                       {partners && Array.isArray(partners) && partners.map((partner: any) => (
                         <SelectItem key={partner.id} value={partner.name}>
