@@ -160,7 +160,10 @@ const Quotations = () => {
             Manage your quotations and send to prospects
           </p>
         </div>
-        <Button onClick={() => setIsCreateModalOpen(true)}>
+        <Button onClick={() => {
+          console.log("Create button clicked, opening modal");
+          setIsCreateModalOpen(true);
+        }}>
           <PlusCircle className="h-4 w-4 mr-2" />
           Create Quotation
         </Button>
