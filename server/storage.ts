@@ -103,6 +103,7 @@ export interface IStorage {
   createList(list: InsertList): Promise<List>;
   updateList(id: number, list: InsertList): Promise<List | undefined>;
   deleteList(id: number): Promise<boolean>;
+  getListContacts(listId: number): Promise<any[]>;
 
   // Forms
   getForms(): Promise<Form[]>;

@@ -1017,6 +1017,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get contacts from a list
+  app.get("/api/lists/:id/contacts", async (req, res) => {
+    try {
+      const listId = parseInt(req.params.id);
+      const listContacts = await storage.getListContacts(listId);
+      res.json(listContacts);
+    } catch (error) {
+      console.error("Error getting list contacts:", error);
+      res.status(500).json({ message: "Failed to get list contacts" });
+    }
+  });
+
   // Add contacts to a list
   app.post("/api/lists/:id/contacts", async (req, res) => {
     try {

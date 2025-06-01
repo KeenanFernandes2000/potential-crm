@@ -224,6 +224,15 @@ export class DatabaseStorage implements IStorage {
     return (result.rowCount || 0) > 0;
   }
 
+  async getListContacts(listId: number): Promise<any[]> {
+    const result = await db.select({
+      contactId: listContacts.contactId,
+      listId: listContacts.listId,
+      addedAt: listContacts.addedAt
+    }).from(listContacts).where(eq(listContacts.listId, listId));
+    return result;
+  }
+
   // Forms
   async getForms(): Promise<Form[]> {
     return db.select().from(forms);
