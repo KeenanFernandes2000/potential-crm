@@ -399,29 +399,223 @@ export class DatabaseStorage implements IStorage {
     };
   }
 
-  // Email template methods (basic implementations)
-  async getEmailTemplates(): Promise<EmailTemplate[]> { return []; }
-  async getEmailTemplate(id: number): Promise<EmailTemplate | undefined> { return undefined; }
-  async createEmailTemplate(template: InsertEmailTemplate): Promise<EmailTemplate> { throw new Error("Not implemented"); }
-  async updateEmailTemplate(id: number, template: InsertEmailTemplate): Promise<EmailTemplate | undefined> { return undefined; }
-  async deleteEmailTemplate(id: number): Promise<boolean> { return false; }
+  // Email template methods
+  async getEmailTemplates(): Promise<EmailTemplate[]> {
+    const result = await db.select().from(emailTemplates);
+    return result;
+  }
 
-  // Email campaign methods (basic implementations)
-  async getEmailCampaigns(): Promise<EmailCampaign[]> { return []; }
-  async getEmailCampaign(id: number): Promise<EmailCampaign | undefined> { return undefined; }
-  async createEmailCampaign(campaign: InsertEmailCampaign): Promise<EmailCampaign> { throw new Error("Not implemented"); }
-  async updateEmailCampaign(id: number, campaign: InsertEmailCampaign): Promise<EmailCampaign | undefined> { return undefined; }
-  async deleteEmailCampaign(id: number): Promise<boolean> { return false; }
+  async getEmailTemplate(id: number): Promise<EmailTemplate | undefined> {
+    const result = await db.select().from(emailTemplates).where(eq(emailTemplates.id, id));
+    return result[0];
+  }
 
-  // Email campaign recipient methods (basic implementations)
-  async getEmailCampaignRecipients(campaignId: number): Promise<EmailCampaignRecipient[]> { return []; }
-  async addContactToEmailCampaign(campaignId: number, contactId: number): Promise<EmailCampaignRecipient> { throw new Error("Not implemented"); }
-  async addContactListToEmailCampaign(campaignId: number, listId: number): Promise<EmailCampaignRecipient[]> { return []; }
+  async createEmailTemplate(template: InsertEmailTemplate): Promise<EmailTemplate> {
+    const result = await db.insert(emailTemplates).values(template).returning();
+    return result[0];
+  }
 
-  // Email sending methods (basic implementations)
-  async sendEmailCampaign(campaignId: number): Promise<boolean> { return true; }
-  async sendQuotationEmail(quotationId: number): Promise<boolean> { return true; }
-  async sendEmailToList(listId: number, subject: string, body: string, fromName: string, fromEmail: string): Promise<boolean> { return true; }
+  async updateEmailTemplate(id: number, template: InsertEmailTemplate): Promise<EmailTemplate | undefined> {
+    const result = await db.update(emailTemplates).set({
+      ...template,
+      updatedAt: new Date(),
+    }).where(eq(emailTemplates.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteEmailTemplate(id: number): Promise<boolean> {
+    const result = await db.delete(emailTemplates).where(eq(emailTemplates.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // Email campaign methods
+  async getEmailCampaigns(): Promise<EmailCampaign[]> {
+    const result = await db.select().from(emailCampaigns);
+    return result;
+  }
+
+  async getEmailCampaign(id: number): Promise<EmailCampaign | undefined> {
+    const result = await db.select().from(emailCampaigns).where(eq(emailCampaigns.id, id));
+    return result[0];
+  }
+
+  async createEmailCampaign(campaign: InsertEmailCampaign): Promise<EmailCampaign> {
+    const result = await db.insert(emailCampaigns).values(campaign).returning();
+    return result[0];
+  }
+
+  async updateEmailCampaign(id: number, campaign: InsertEmailCampaign): Promise<EmailCampaign | undefined> {
+    const result = await db.update(emailCampaigns).set({
+      ...campaign,
+      updatedAt: new Date(),
+    }).where(eq(emailCampaigns.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteEmailCampaign(id: number): Promise<boolean> {
+    const result = await db.delete(emailCampaigns).where(eq(emailCampaigns.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
+
+  // Email campaign recipient methods
+  async getEmailCampaignRecipients(campaignId: number): Promise<EmailCampaignRecipient[]> {
+    const result = await db.select().from(emailCampaignRecipients).where(eq(emailCampaignRecipients.campaignId, campaignId));
+    return result;
+  }
+
+  async addContactToEmailCampaign(campaignId: number, contactId: number): Promise<EmailCampaignRecipient> {
+    const result = await db.insert(emailCampaignRecipients).values({
+      campaignId,
+      contactId,
+      status: "Draft"
+    }).returning();
+    return result[0];
+  }
+
+  async addContactListToEmailCampaign(campaignId: number, listId: number): Promise<EmailCampaignRecipient[]> {
+    // Get all contacts in the list
+    const listContactsResult = await db.select().from(listContacts).where(eq(listContacts.listId, listId));
+    
+    const recipients: EmailCampaignRecipient[] = [];
+    for (const listContact of listContactsResult) {
+      const result = await db.insert(emailCampaignRecipients).values({
+        campaignId,
+        contactId: listContact.contactId,
+        status: "Draft"
+      }).returning();
+      recipients.push(result[0]);
+    }
+    
+    return recipients;
+  }
+
+  // Email sending methods
+  async sendEmailCampaign(campaignId: number): Promise<boolean> {
+    try {
+      const { sendEmail, sendBulkEmail } = await import("./email");
+      
+      // Get campaign details
+      const campaign = await this.getEmailCampaign(campaignId);
+      if (!campaign) return false;
+
+      // Get recipients
+      const recipients = await this.getEmailCampaignRecipients(campaignId);
+      if (recipients.length === 0) return false;
+
+      // Get contact emails
+      const contactEmails: string[] = [];
+      for (const recipient of recipients) {
+        const contact = await this.getContact(recipient.contactId);
+        if (contact?.email) {
+          contactEmails.push(contact.email);
+        }
+      }
+
+      if (contactEmails.length === 0) return false;
+
+      // Send bulk email
+      const result = await sendBulkEmail(
+        contactEmails,
+        campaign.fromEmail,
+        campaign.subject,
+        campaign.textContent || undefined,
+        campaign.htmlContent || undefined
+      );
+
+      // Update campaign status
+      await db.update(emailCampaigns).set({
+        status: "Sent",
+        sentAt: new Date(),
+        updatedAt: new Date(),
+      }).where(eq(emailCampaigns.id, campaignId));
+
+      // Update recipient statuses
+      await db.update(emailCampaignRecipients).set({
+        status: result.success ? "Sent" : "Failed",
+        sentAt: new Date(),
+      }).where(eq(emailCampaignRecipients.campaignId, campaignId));
+
+      return result.success;
+    } catch (error) {
+      console.error("Error sending email campaign:", error);
+      return false;
+    }
+  }
+
+  async sendQuotationEmail(quotationId: number): Promise<boolean> {
+    try {
+      const { sendEmail } = await import("./email");
+      
+      // Get quotation details
+      const quotation = await this.getQuotation(quotationId);
+      if (!quotation) return false;
+
+      // Get deal and company details
+      const deal = quotation.dealId ? await this.getDeal(quotation.dealId) : null;
+      const company = quotation.companyId ? await this.getCompany(quotation.companyId) : null;
+
+      if (!company?.email && !deal?.contactEmail) return false;
+
+      const recipientEmail = company?.email || deal?.contactEmail || "";
+      
+      // Create email content
+      const subject = `Quotation #${quotation.id} - ${quotation.title}`;
+      const htmlContent = `
+        <h2>Quotation: ${quotation.title}</h2>
+        <p><strong>Amount:</strong> ${quotation.currency} ${quotation.amount}</p>
+        <p><strong>Valid Until:</strong> ${quotation.validUntil ? new Date(quotation.validUntil).toLocaleDateString() : 'N/A'}</p>
+        ${quotation.description ? `<p><strong>Description:</strong> ${quotation.description}</p>` : ''}
+        <p>Thank you for your business!</p>
+      `;
+
+      const result = await sendEmail({
+        to: recipientEmail,
+        from: "noreply@yourcompany.com", // You can make this configurable
+        subject,
+        html: htmlContent
+      });
+
+      if (result) {
+        await this.markQuotationAsEmailSent(quotationId);
+      }
+
+      return result;
+    } catch (error) {
+      console.error("Error sending quotation email:", error);
+      return false;
+    }
+  }
+
+  async sendEmailToList(listId: number, subject: string, body: string, fromName: string, fromEmail: string): Promise<boolean> {
+    try {
+      const { sendBulkEmail } = await import("./email");
+      
+      // Get all contacts in the list
+      const listContactsResult = await db.select().from(listContacts).where(eq(listContacts.listId, listId));
+      
+      const contactEmails: string[] = [];
+      for (const listContact of listContactsResult) {
+        const contact = await this.getContact(listContact.contactId);
+        if (contact?.email) {
+          contactEmails.push(contact.email);
+        }
+      }
+
+      if (contactEmails.length === 0) return false;
+
+      const result = await sendBulkEmail(
+        contactEmails,
+        fromEmail,
+        subject,
+        body // text content
+      );
+
+      return result.success;
+    } catch (error) {
+      console.error("Error sending email to list:", error);
+      return false;
+    }
+  }
 
   // Social account methods (basic implementations)
   async getSocialAccounts(): Promise<SocialAccount[]> { return []; }
