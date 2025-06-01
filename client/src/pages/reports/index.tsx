@@ -111,12 +111,70 @@ const Reports = () => {
       
       <Tabs defaultValue="sales" value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-6">
-          <TabsTrigger value="sales">Sales</TabsTrigger>
+          <TabsTrigger value="sales">Funnel</TabsTrigger>
           <TabsTrigger value="marketing">Marketing</TabsTrigger>
           <TabsTrigger value="contacts">Contacts</TabsTrigger>
         </TabsList>
         
         <TabsContent value="sales" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Sales Funnel</CardTitle>
+              <CardDescription>
+                Value of deals at each stage of the sales pipeline
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[400px]">
+                {isDealsLoading ? (
+                  <div className="flex items-center justify-center h-full">
+                    <p>Loading sales data...</p>
+                  </div>
+                ) : dealsByStage.length === 0 ? (
+                  <div className="flex items-center justify-center h-full">
+                    <p>No deals data available. Add some deals to see the funnel.</p>
+                  </div>
+                ) : (
+                  <div className="relative h-full flex justify-center items-center">
+                    <div className="flex flex-col justify-center items-center w-2/3">
+                      {dealsByStage.filter(item => item.value > 0).map((stage, index) => {
+                        const maxValue = Math.max(...dealsByStage.map(s => s.value));
+                        const percentage = (stage.value / maxValue) * 100;
+                        const width = Math.max(percentage, 15); // Minimum 15% width for visibility
+                        
+                        return (
+                          <div key={stage.stage} className="relative w-full flex justify-center mb-2">
+                            <div 
+                              className="relative"
+                              style={{
+                                width: `${width}%`,
+                                background: COLORS[index % COLORS.length],
+                                clipPath: index === 0 
+                                  ? 'polygon(10% 0%, 90% 0%, 85% 100%, 15% 100%)' // Top trapezoid
+                                  : index === dealsByStage.filter(item => item.value > 0).length - 1
+                                  ? 'polygon(15% 0%, 85% 0%, 90% 100%, 10% 100%)' // Bottom trapezoid  
+                                  : 'polygon(15% 0%, 85% 0%, 85% 100%, 15% 100%)', // Middle rectangle
+                                minHeight: '60px'
+                              }}
+                            />
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div className="flex flex-col justify-center ml-8 space-y-2">
+                      {dealsByStage.filter(item => item.value > 0).map((stage, index) => (
+                        <div key={stage.stage} className="flex items-center justify-between min-h-[60px] mb-2">
+                          <span className="text-sm font-semibold text-black mr-8">{stage.stage}</span>
+                          <span className="text-sm font-bold text-black">{stage.formattedValue}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+          
           <Card>
             <CardHeader>
               <CardTitle>Geographic Deal Distribution</CardTitle>
@@ -169,64 +227,6 @@ const Reports = () => {
                           </div>
                         );
                       })}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Sales Funnel</CardTitle>
-              <CardDescription>
-                Value of deals at each stage of the sales pipeline
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[400px]">
-                {isDealsLoading ? (
-                  <div className="flex items-center justify-center h-full">
-                    <p>Loading sales data...</p>
-                  </div>
-                ) : dealsByStage.length === 0 ? (
-                  <div className="flex items-center justify-center h-full">
-                    <p>No deals data available. Add some deals to see the funnel.</p>
-                  </div>
-                ) : (
-                  <div className="relative h-full flex justify-center items-center">
-                    <div className="flex flex-col justify-center items-center w-2/3">
-                      {dealsByStage.filter(item => item.value > 0).map((stage, index) => {
-                        const maxValue = Math.max(...dealsByStage.map(s => s.value));
-                        const percentage = (stage.value / maxValue) * 100;
-                        const width = Math.max(percentage, 15); // Minimum 15% width for visibility
-                        
-                        return (
-                          <div key={stage.stage} className="relative w-full flex justify-center mb-2">
-                            <div 
-                              className="relative"
-                              style={{
-                                width: `${width}%`,
-                                background: COLORS[index % COLORS.length],
-                                clipPath: index === 0 
-                                  ? 'polygon(10% 0%, 90% 0%, 85% 100%, 15% 100%)' // Top trapezoid
-                                  : index === dealsByStage.filter(item => item.value > 0).length - 1
-                                  ? 'polygon(15% 0%, 85% 0%, 90% 100%, 10% 100%)' // Bottom trapezoid  
-                                  : 'polygon(15% 0%, 85% 0%, 85% 100%, 15% 100%)', // Middle rectangle
-                                minHeight: '60px'
-                              }}
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <div className="flex flex-col justify-center ml-8 space-y-2">
-                      {dealsByStage.filter(item => item.value > 0).map((stage, index) => (
-                        <div key={stage.stage} className="flex items-center justify-between min-h-[60px] mb-2">
-                          <span className="text-sm font-semibold text-black mr-8">{stage.stage}</span>
-                          <span className="text-sm font-bold text-black">{stage.formattedValue}</span>
-                        </div>
-                      ))}
                     </div>
                   </div>
                 )}
