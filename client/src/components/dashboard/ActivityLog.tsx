@@ -62,6 +62,15 @@ const formatTimeAgo = (date: Date) => {
 };
 
 export function ActivityLog({ activities }: ActivityLogProps) {
+  // Show message if no activities
+  if (!activities || activities.length === 0) {
+    return (
+      <div className="text-center py-8 text-gray-500">
+        <p className="text-sm">No recent activities</p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-4">
       {activities.map((activity) => (
