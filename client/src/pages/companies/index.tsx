@@ -152,7 +152,17 @@ const Companies = () => {
     },
     {
       accessorKey: "partnerId",
-      header: "Partner",
+      header: ({ column }) => {
+        return (
+          <Button
+            variant="ghost"
+            onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
+          >
+            Partner
+            <ArrowUpDown className="ml-2 h-4 w-4" />
+          </Button>
+        )
+      },
       cell: ({ row }) => {
         const company = row.original;
         const partnerName = getPartnerName(company.partnerId);
@@ -161,6 +171,11 @@ const Companies = () => {
             {partnerName}
           </Badge>
         );
+      },
+      sortingFn: (rowA, rowB) => {
+        const partnerA = getPartnerName(rowA.original.partnerId);
+        const partnerB = getPartnerName(rowB.original.partnerId);
+        return partnerA.localeCompare(partnerB);
       },
     },
     {
