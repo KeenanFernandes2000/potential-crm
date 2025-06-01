@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Deal, dealStageEnum } from "@shared/schema";
+import { Deal, dealStageEnum, Contact, Company } from "@shared/schema";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend, FunnelChart, Funnel, LabelList } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
 
 const Reports = () => {
   const [activeTab, setActiveTab] = useState("sales");
@@ -11,6 +11,16 @@ const Reports = () => {
   // Fetch deals data
   const { data: deals, isLoading: isDealsLoading } = useQuery<Deal[]>({
     queryKey: ["/api/deals"],
+  });
+
+  // Fetch contacts data
+  const { data: contacts, isLoading: isContactsLoading } = useQuery<Contact[]>({
+    queryKey: ["/api/contacts"],
+  });
+
+  // Fetch companies data  
+  const { data: companies, isLoading: isCompaniesLoading } = useQuery<Company[]>({
+    queryKey: ["/api/companies"],
   });
 
   // Calculate deal metrics by stage
@@ -34,6 +44,54 @@ const Reports = () => {
         };
       });
 
+  // Calculate geographic distribution of deals
+  const dealsByCountry = isDealsLoading || isContactsLoading || isCompaniesLoading || !deals || !contacts || !companies
+    ? []
+    : (() => {
+        const countryData: { [country: string]: { count: number; value: number; deals: Deal[] } } = {};
+        
+        deals.forEach(deal => {
+          let country = 'Unknown';
+          
+          // Try to get country from associated company
+          if (deal.companyId) {
+            const company = companies.find(c => c.id === deal.companyId);
+            if (company?.country) {
+              country = company.country;
+            }
+          }
+          
+          // Try to get country from associated contact if company doesn't have it
+          if (country === 'Unknown' && deal.contactId) {
+            const contact = contacts.find(c => c.id === deal.contactId);
+            if (contact?.country) {
+              country = contact.country;
+            }
+          }
+          
+          if (!countryData[country]) {
+            countryData[country] = { count: 0, value: 0, deals: [] };
+          }
+          
+          countryData[country].count += 1;
+          countryData[country].value += deal.value || 0;
+          countryData[country].deals.push(deal);
+        });
+        
+        return Object.entries(countryData).map(([country, data]) => ({
+          country,
+          count: data.count,
+          value: data.value,
+          deals: data.deals,
+          formattedValue: new Intl.NumberFormat('en-US', {
+            style: 'currency',
+            currency: 'USD',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+          }).format(data.value)
+        })).sort((a, b) => b.value - a.value);
+      })();
+
   // Custom colors for the funnel chart
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#a855f7', '#ef4444'];
 
@@ -49,6 +107,134 @@ const Reports = () => {
         </TabsList>
         
         <TabsContent value="sales" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Geographic Deal Distribution</CardTitle>
+              <CardDescription>
+                Deal distribution by country with value and count visualization
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[400px]">
+                {isDealsLoading || isContactsLoading || isCompaniesLoading ? (
+                  <div className="flex items-center justify-center h-full">
+                    <p>Loading geographic data...</p>
+                  </div>
+                ) : dealsByCountry.length === 0 ? (
+                  <div className="flex items-center justify-center h-full">
+                    <p>No geographic data available. Add countries to your contacts and companies to see the distribution.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
+                    {/* World Map Visualization */}
+                    <div className="relative">
+                      <h3 className="text-lg font-semibold mb-4">World Map</h3>
+                      <div className="relative bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg p-4 h-[320px] overflow-hidden">
+                        {/* Simplified world map representation */}
+                        <svg viewBox="0 0 800 400" className="w-full h-full">
+                          {/* Background */}
+                          <rect width="800" height="400" fill="currentColor" className="text-blue-100 dark:text-blue-900/30" />
+                          
+                          {/* Continents - simplified shapes */}
+                          <g className="text-gray-300 dark:text-gray-600" fill="currentColor">
+                            {/* North America */}
+                            <path d="M100,80 L200,70 L220,120 L180,180 L120,160 Z" />
+                            {/* South America */}
+                            <path d="M150,200 L180,190 L190,280 L160,320 L140,280 Z" />
+                            {/* Europe */}
+                            <path d="M380,80 L420,75 L430,120 L400,140 L370,130 Z" />
+                            {/* Africa */}
+                            <path d="M380,140 L420,135 L440,240 L400,280 L360,240 Z" />
+                            {/* Asia */}
+                            <path d="M440,60 L650,55 L680,180 L620,200 L450,190 Z" />
+                            {/* Australia */}
+                            <path d="M600,250 L680,245 L690,280 L650,290 L600,285 Z" />
+                          </g>
+                          
+                          {/* Country indicators */}
+                          {dealsByCountry.slice(0, 10).map((country, index) => {
+                            const maxValue = dealsByCountry[0]?.value || 1;
+                            const intensity = (country.value / maxValue);
+                            const size = Math.max(8, intensity * 20);
+                            
+                            // Simple positioning for demonstration - in real app would use proper coordinates
+                            const positions = [
+                              { x: 160, y: 120, name: "USA" },
+                              { x: 400, y: 110, name: "Germany" },
+                              { x: 500, y: 130, name: "India" },
+                              { x: 600, y: 120, name: "China" },
+                              { x: 410, y: 100, name: "UK" },
+                              { x: 430, y: 95, name: "France" },
+                              { x: 550, y: 110, name: "Japan" },
+                              { x: 165, y: 250, name: "Brazil" },
+                              { x: 640, y: 265, name: "Australia" },
+                              { x: 520, y: 140, name: "Singapore" }
+                            ];
+                            
+                            const position = positions.find(p => 
+                              p.name.toLowerCase() === country.country.toLowerCase()
+                            ) || positions[index % positions.length];
+                            
+                            return (
+                              <g key={country.country}>
+                                <circle
+                                  cx={position.x}
+                                  cy={position.y}
+                                  r={size}
+                                  fill={COLORS[index % COLORS.length]}
+                                  opacity={0.8}
+                                  className="cursor-pointer hover:opacity-100"
+                                />
+                                <text
+                                  x={position.x}
+                                  y={position.y - size - 5}
+                                  textAnchor="middle"
+                                  className="text-xs font-semibold fill-gray-700 dark:fill-gray-300"
+                                >
+                                  {country.country}
+                                </text>
+                                <text
+                                  x={position.x}
+                                  y={position.y + size + 15}
+                                  textAnchor="middle"
+                                  className="text-xs fill-gray-600 dark:fill-gray-400"
+                                >
+                                  {country.count} deals
+                                </text>
+                              </g>
+                            );
+                          })}
+                        </svg>
+                      </div>
+                    </div>
+                    
+                    {/* Country Statistics */}
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4">Deal Statistics by Country</h3>
+                      <div className="space-y-3 max-h-[320px] overflow-y-auto">
+                        {dealsByCountry.map((country, index) => (
+                          <div key={country.country} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                            <div className="flex items-center space-x-3">
+                              <div 
+                                className="w-4 h-4 rounded-full"
+                                style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                              />
+                              <span className="font-medium">{country.country}</span>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-semibold">{country.formattedValue}</div>
+                              <div className="text-sm text-gray-500">{country.count} deals</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+          
           <Card>
             <CardHeader>
               <CardTitle>Sales Funnel</CardTitle>
