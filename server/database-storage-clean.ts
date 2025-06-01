@@ -518,8 +518,8 @@ export class DatabaseStorage implements IStorage {
         contactEmails,
         campaign.fromEmail,
         campaign.subject,
-        campaign.textContent || undefined,
-        campaign.htmlContent || undefined
+        campaign.body || undefined,
+        campaign.body || undefined
       );
 
       // Update campaign status

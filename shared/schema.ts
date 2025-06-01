@@ -249,9 +249,12 @@ export const quotationTemplates = pgTable("quotation_templates", {
 export const emailTemplates = pgTable("email_templates", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  category: text("category").notNull(),
+  description: text("description"),
   subject: text("subject").notNull(),
   body: text("body").notNull(),
+  fromName: text("from_name").notNull(),
+  fromEmail: text("from_email").notNull(),
+  replyTo: text("reply_to"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
