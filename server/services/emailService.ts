@@ -61,15 +61,26 @@ export async function sendEmailCampaign(campaignId: number): Promise<boolean> {
       return false;
     }
     
-    // Get the email template
-    const template = await storage.getEmailTemplate(campaign.templateId);
-    if (!template) {
-      console.error(`Template with ID ${campaign.templateId} not found`);
-      return false;
+    // Get the email template if one is specified
+    let template = null;
+    if (campaign.templateId) {
+      template = await storage.getEmailTemplate(campaign.templateId);
+      if (!template) {
+        console.error(`Template with ID ${campaign.templateId} not found`);
+        return false;
+      }
     }
     
     // Get all recipients for this campaign
-    const recipients = await storage.getEmailCampaignRecipients(campaignId);
+    let recipients = await storage.getEmailCampaignRecipients(campaignId);
+    
+    // If no recipients but campaign has a target list, add list contacts as recipients
+    if (recipients.length === 0 && campaign.listId) {
+      console.log(`Adding contacts from list ${campaign.listId} to campaign ${campaignId}`);
+      const listRecipients = await storage.addContactListToEmailCampaign(campaignId, campaign.listId);
+      recipients = await storage.getEmailCampaignRecipients(campaignId);
+    }
+    
     if (recipients.length === 0) {
       console.error(`No recipients found for campaign ${campaignId}`);
       return false;
@@ -93,12 +104,16 @@ export async function sendEmailCampaign(campaignId: number): Promise<boolean> {
       variables.campaignName = campaign.name;
       variables.campaignDescription = campaign.description || '';
       
+      // Use template content if available, otherwise use campaign content
+      const emailSubject = template ? template.subject : campaign.subject;
+      const emailBody = template ? template.body : campaign.body;
+      
       // Send the email
       const success = await sendEmail(
         contact.email,
         campaign.fromEmail,
-        template.subject,
-        template.body,
+        emailSubject,
+        emailBody,
         variables
       );
       
