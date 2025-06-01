@@ -277,6 +277,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const data = insertCompanySchema.parse(req.body);
       const company = await storage.createCompany(data);
+      
+      // Create activity record for company creation
+      try {
+        await storage.createActivity({
+          type: "contact",
+          title: `New company "${company.name}" added`,
+          description: `Company from ${company.country || 'Unknown location'} in ${company.industry || 'Unknown'} industry`,
+          companyId: company.id,
+          userId: null
+        });
+      } catch (activityError) {
+        console.error("Failed to create activity for company:", activityError);
+      }
+      
       res.status(201).json(company);
     } catch (error) {
       console.error("Create company error:", error);
@@ -436,6 +450,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       };
       
       const deal = await storage.createDeal(dealData);
+      
+      // Create activity record for deal creation
+      try {
+        await storage.createActivity({
+          type: "deal",
+          title: `New deal "${deal.title}" created`,
+          description: `Deal worth ${deal.currency} ${deal.value} in ${deal.stage} stage`,
+          dealId: deal.id,
+          companyId: deal.companyId,
+          userId: null
+        });
+      } catch (activityError) {
+        console.error("Failed to create activity for deal:", activityError);
+      }
+      
       res.status(201).json(deal);
     } catch (error) {
       console.error("Deal creation error:", error);
@@ -768,6 +797,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         dealId: data.dealId,
       };
       const task = await storage.createTask(validatedData);
+      
+      // Create activity record for task creation
+      try {
+        await storage.createActivity({
+          type: "meeting",
+          title: `Task "${task.title}" created`,
+          description: `${task.priority} priority task${task.dueDate ? ' due ' + task.dueDate.toLocaleDateString() : ''}`,
+          contactId: task.contactId,
+          companyId: task.companyId,
+          dealId: task.dealId,
+          userId: null
+        });
+      } catch (activityError) {
+        console.error("Failed to create activity for task:", activityError);
+      }
+      
       res.status(201).json(task);
     } catch (error) {
       if (error instanceof z.ZodError) {
