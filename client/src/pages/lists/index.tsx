@@ -160,7 +160,7 @@ const Lists = () => {
 
   const addContactsToList = useMutation({
     mutationFn: ({ listId, contactIds }: { listId: number; contactIds: number[] }) => 
-      apiRequest(`/api/lists/${listId}/contacts`, "POST", { contactIds }),
+      apiRequest("POST", `/api/lists/${listId}/contacts`, { contactIds }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/lists"] });
       setIsManageContactsOpen(false);
@@ -236,7 +236,7 @@ const Lists = () => {
 
   const bulkImportContacts = useMutation({
     mutationFn: async ({ listId, contacts }: { listId: number; contacts: any[] }) => {
-      return apiRequest(`/api/lists/${listId}/bulk-import`, "POST", { contacts });
+      return apiRequest("POST", `/api/lists/${listId}/bulk-import`, { contacts });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/lists"] });
