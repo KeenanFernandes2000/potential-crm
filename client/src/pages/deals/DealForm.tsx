@@ -4,7 +4,8 @@ import { z } from "zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Deal, insertDealSchema } from "@shared/schema";
+import { Deal, insertDealSchema, Company } from "@shared/schema";
+import { useState } from "react";
 
 import {
   Form,
@@ -24,7 +25,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { X } from "lucide-react";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { X, Check, ChevronsUpDown } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CalendarIcon } from "lucide-react";
 import { Calendar } from "@/components/ui/calendar";
@@ -46,9 +48,10 @@ interface DealFormProps {
 const DealForm = ({ deal, onClose }: DealFormProps) => {
   const { toast } = useToast();
   const isEditing = !!deal;
+  const [openCompanyCombobox, setOpenCompanyCombobox] = useState(false);
 
   // Fetch companies for dropdown
-  const { data: companies } = useQuery({
+  const { data: companies } = useQuery<Company[]>({
     queryKey: ["/api/companies"],
   });
 
@@ -232,28 +235,54 @@ const DealForm = ({ deal, onClose }: DealFormProps) => {
               control={form.control}
               name="companyId"
               render={({ field }) => (
-                <FormItem>
+                <FormItem className="flex flex-col">
                   <FormLabel>Company</FormLabel>
-                  <Select
-                    value={field.value?.toString()}
-                    onValueChange={(value) => field.onChange(Number(value))}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select company" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {companies?.map((company) => (
-                        <SelectItem key={company.id} value={company.id.toString()}>
-                          {company.name}
-                        </SelectItem>
-                      ))}
-                      {(!companies || companies.length === 0) && (
-                        <SelectItem value="none" disabled>No companies available</SelectItem>
-                      )}
-                    </SelectContent>
-                  </Select>
+                  <Popover open={openCompanyCombobox} onOpenChange={setOpenCompanyCombobox}>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={openCompanyCombobox}
+                          className={cn(
+                            "w-full justify-between",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value
+                            ? companies?.find((company) => company.id === field.value)?.name
+                            : "Search and select company..."}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0">
+                      <Command>
+                        <CommandInput placeholder="Search companies..." />
+                        <CommandEmpty>No company found.</CommandEmpty>
+                        <CommandGroup className="max-h-64 overflow-auto">
+                          {companies?.map((company) => (
+                            <CommandItem
+                              key={company.id}
+                              value={company.name}
+                              onSelect={() => {
+                                field.onChange(company.id);
+                                setOpenCompanyCombobox(false);
+                              }}
+                            >
+                              <Check
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  field.value === company.id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {company.name}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   <FormMessage />
                 </FormItem>
               )}
