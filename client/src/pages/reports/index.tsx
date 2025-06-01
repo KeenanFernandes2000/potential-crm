@@ -259,7 +259,11 @@ const Reports = () => {
                         <XAxis dataKey="stage" />
                         <YAxis />
                         <Tooltip />
-                        <Bar dataKey="count" fill="#3b82f6" name="Deal Count" />
+                        <Bar dataKey="count" name="Deal Count">
+                          {dealsByStage.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Bar>
                       </BarChart>
                     </ResponsiveContainer>
                   )}
