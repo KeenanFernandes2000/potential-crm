@@ -130,65 +130,34 @@ const Reports = () => {
                     <div className="relative">
                       <h3 className="text-lg font-semibold mb-4">World Map</h3>
                       <div className="relative bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg p-4 h-[400px] overflow-hidden">
-                        {/* Professional world map with deal overlays */}
                         <div className="relative w-full h-full">
                           <svg viewBox="0 0 1000 500" className="w-full h-full">
-                            {/* Ocean background */}
                             <rect width="1000" height="500" fill="#a3d5ff" opacity="0.3" />
-                            
-                            {/* Detailed world map with accurate country shapes */}
                             <g fill="#e5e7eb" stroke="#ffffff" strokeWidth="0.8" className="dark:fill-gray-600">
-                              {/* North America */}
                               <path d="M120,80 Q180,65 240,70 Q300,75 340,95 Q360,115 350,140 Q330,165 300,185 Q270,200 240,195 Q210,190 180,175 Q150,160 130,140 Q110,120 115,100 Q118,85 120,80 Z" />
-                              {/* Mexico */}
                               <path d="M160,190 Q200,185 240,195 Q260,210 250,230 Q230,240 200,235 Q170,225 160,205 Q155,195 160,190 Z" />
-                              {/* South America */}
                               <path d="M230,230 Q260,220 290,225 Q320,235 340,260 Q350,290 345,320 Q335,350 320,375 Q300,395 280,400 Q260,395 245,385 Q235,370 240,350 Q245,330 250,310 Q255,290 250,270 Q245,250 240,235 Q232,230 230,230 Z" />
-                              {/* Europe */}
                               <path d="M480,100 Q510,95 540,105 Q565,115 575,135 Q570,155 555,165 Q535,170 515,165 Q495,155 485,140 Q480,125 485,110 Q482,105 480,100 Z" />
-                              {/* Africa */}
                               <path d="M500,180 Q530,175 560,185 Q590,200 605,230 Q610,260 600,290 Q585,320 565,345 Q545,365 520,370 Q495,365 475,350 Q460,330 465,305 Q470,280 480,255 Q490,230 500,205 Q502,185 500,180 Z" />
-                              {/* Asia */}
                               <path d="M580,90 Q630,85 680,95 Q730,105 780,115 Q820,125 850,145 Q860,165 850,185 Q835,205 815,215 Q790,220 765,215 Q740,205 715,195 Q690,185 665,175 Q640,165 615,155 Q590,145 585,125 Q582,105 580,90 Z" />
-                              {/* China region */}
                               <path d="M680,135 Q720,130 760,140 Q785,150 800,170 Q795,190 775,200 Q750,205 725,195 Q700,185 685,170 Q675,155 680,140 Q678,137 680,135 Z" />
-                              {/* India */}
                               <path d="M630,185 Q660,180 685,190 Q705,205 710,230 Q705,250 685,260 Q665,265 645,255 Q630,240 635,220 Q635,205 630,190 Q628,187 630,185 Z" />
-                              {/* Australia */}
                               <path d="M780,330 Q810,325 840,335 Q860,350 865,370 Q860,385 840,395 Q815,400 790,395 Q770,385 765,370 Q760,355 765,340 Q770,332 780,330 Z" />
-                              {/* Japan */}
                               <path d="M850,160 Q865,155 875,165 Q880,180 875,195 Q865,205 850,200 Q840,190 840,175 Q845,165 850,160 Z" />
-                              {/* UK */}
                               <path d="M485,115 Q495,110 505,120 Q510,130 505,140 Q495,145 485,140 Q480,130 480,120 Q482,115 485,115 Z" />
-                              {/* Scandinavia */}
-                              <path d="M520,80 Q540,75 560,85 Q575,100 570,120 Q560,135 540,140 Q525,135 515,120 Q515,105 520,90 Q518,82 520,80 Z" />
-                              {/* Southeast Asia */}
-                              <path d="M730,230 Q760,225 785,235 Q805,250 810,270 Q805,285 785,295 Q760,300 735,295 Q715,285 710,270 Q710,255 720,240 Q725,232 730,230 Z" />
-                              {/* Middle East */}
                               <path d="M550,165 Q580,160 605,170 Q625,180 630,200 Q625,215 605,225 Q580,230 560,220 Q545,205 550,185 Q548,170 550,165 Z" />
-                              {/* Russia/Siberia */}
-                              <path d="M580,70 Q650,65 720,75 Q790,85 850,95 Q890,105 910,125 Q905,140 875,145 Q845,140 815,135 Q785,130 755,125 Q725,120 695,115 Q665,110 635,105 Q605,100 580,95 Q575,85 580,70 Z" />
                             </g>
-                            
-                            {/* Deal markers overlaid on the map */}
                             {dealsByCountry.slice(0, 10).map((country, index) => {
                               const maxValue = dealsByCountry[0]?.value || 1;
                               const intensity = (country.value / maxValue);
                               const size = Math.max(12, intensity * 25);
                               
-                              // Accurate country coordinates for the new world map
                               const countryPositions: Record<string, { x: number, y: number }> = {
                                 "united arab emirates": { x: 600, y: 190 },
                                 "uae": { x: 600, y: 190 },
-                                "kuwait": { x: 590, y: 185 },
-                                "oman": { x: 620, y: 200 },
-                                "saudi arabia": { x: 580, y: 190 },
-                                "qatar": { x: 595, y: 188 },
-                                "bahrain": { x: 593, y: 186 },
                                 "united states": { x: 220, y: 130 },
                                 "usa": { x: 220, y: 130 },
                                 "canada": { x: 200, y: 80 },
-                                "mexico": { x: 200, y: 210 },
                                 "brazil": { x: 280, y: 300 },
                                 "uk": { x: 495, y: 125 },
                                 "united kingdom": { x: 495, y: 125 },
@@ -247,6 +216,7 @@ const Reports = () => {
                           </svg>
                         </div>
                       </div>
+                    </div>
 
                     {/* Deals by Country */}
                     <div className="relative">
@@ -287,8 +257,6 @@ const Reports = () => {
                         </div>
                       </div>
                     </div>
-                    
-                  </div>
                   </div>
                 )}
               </div>
