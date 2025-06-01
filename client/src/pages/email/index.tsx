@@ -1,6 +1,8 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { EmailTemplate, EmailCampaign } from "@shared/schema";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -16,6 +18,7 @@ export default function EmailPage() {
   const [showSendToListDialog, setShowSendToListDialog] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<EmailTemplate | null>(null);
   const [selectedCampaign, setSelectedCampaign] = useState<EmailCampaign | null>(null);
+  const { toast } = useToast();
 
   const { data: templates = [] } = useQuery<EmailTemplate[]>({
     queryKey: ["/api/email-templates"],
@@ -24,6 +27,31 @@ export default function EmailPage() {
   const { data: campaigns = [] } = useQuery<EmailCampaign[]>({
     queryKey: ["/api/email-campaigns"],
   });
+
+  const sendCampaignMutation = useMutation({
+    mutationFn: (campaignId: number) => 
+      apiRequest("POST", `/api/email-campaigns/${campaignId}/send`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/email-campaigns"] });
+      toast({
+        title: "Success",
+        description: "Email campaign sent successfully",
+      });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error", 
+        description: error.message || "Failed to send campaign",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const handleSendCampaign = (campaign: EmailCampaign) => {
+    if (confirm(`Are you sure you want to send the campaign "${campaign.name}"? This action cannot be undone.`)) {
+      sendCampaignMutation.mutate(campaign.id);
+    }
+  };
 
   const handleTemplateEdit = (template: EmailTemplate) => {
     setSelectedTemplate(template);
@@ -144,9 +172,13 @@ export default function EmailPage() {
                       Edit
                     </Button>
                     {campaign.status === 'Draft' && (
-                      <Button size="sm">
+                      <Button 
+                        size="sm"
+                        onClick={() => handleSendCampaign(campaign)}
+                        disabled={sendCampaignMutation.isPending}
+                      >
                         <Send className="mr-1 h-3 w-3" />
-                        Send
+                        {sendCampaignMutation.isPending ? "Sending..." : "Send"}
                       </Button>
                     )}
                   </div>
