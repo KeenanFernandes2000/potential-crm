@@ -125,137 +125,40 @@ const Reports = () => {
                     <p>No geographic data available. Add countries to your contacts and companies to see the distribution.</p>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-full">
-                    {/* World Map Visualization */}
-                    <div className="relative">
-                      <h3 className="text-lg font-semibold mb-4">World Map</h3>
-                      <div className="relative bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/20 rounded-lg p-4 h-[400px] overflow-hidden">
-                        <div className="relative w-full h-full">
-                          <svg viewBox="0 0 1000 500" className="w-full h-full">
-                            <rect width="1000" height="500" fill="#a3d5ff" opacity="0.3" />
-                            <g fill="#e5e7eb" stroke="#ffffff" strokeWidth="0.8" className="dark:fill-gray-600">
-                              <path d="M120,80 Q180,65 240,70 Q300,75 340,95 Q360,115 350,140 Q330,165 300,185 Q270,200 240,195 Q210,190 180,175 Q150,160 130,140 Q110,120 115,100 Q118,85 120,80 Z" />
-                              <path d="M160,190 Q200,185 240,195 Q260,210 250,230 Q230,240 200,235 Q170,225 160,205 Q155,195 160,190 Z" />
-                              <path d="M230,230 Q260,220 290,225 Q320,235 340,260 Q350,290 345,320 Q335,350 320,375 Q300,395 280,400 Q260,395 245,385 Q235,370 240,350 Q245,330 250,310 Q255,290 250,270 Q245,250 240,235 Q232,230 230,230 Z" />
-                              <path d="M480,100 Q510,95 540,105 Q565,115 575,135 Q570,155 555,165 Q535,170 515,165 Q495,155 485,140 Q480,125 485,110 Q482,105 480,100 Z" />
-                              <path d="M500,180 Q530,175 560,185 Q590,200 605,230 Q610,260 600,290 Q585,320 565,345 Q545,365 520,370 Q495,365 475,350 Q460,330 465,305 Q470,280 480,255 Q490,230 500,205 Q502,185 500,180 Z" />
-                              <path d="M580,90 Q630,85 680,95 Q730,105 780,115 Q820,125 850,145 Q860,165 850,185 Q835,205 815,215 Q790,220 765,215 Q740,205 715,195 Q690,185 665,175 Q640,165 615,155 Q590,145 585,125 Q582,105 580,90 Z" />
-                              <path d="M680,135 Q720,130 760,140 Q785,150 800,170 Q795,190 775,200 Q750,205 725,195 Q700,185 685,170 Q675,155 680,140 Q678,137 680,135 Z" />
-                              <path d="M630,185 Q660,180 685,190 Q705,205 710,230 Q705,250 685,260 Q665,265 645,255 Q630,240 635,220 Q635,205 630,190 Q628,187 630,185 Z" />
-                              <path d="M780,330 Q810,325 840,335 Q860,350 865,370 Q860,385 840,395 Q815,400 790,395 Q770,385 765,370 Q760,355 765,340 Q770,332 780,330 Z" />
-                              <path d="M850,160 Q865,155 875,165 Q880,180 875,195 Q865,205 850,200 Q840,190 840,175 Q845,165 850,160 Z" />
-                              <path d="M485,115 Q495,110 505,120 Q510,130 505,140 Q495,145 485,140 Q480,130 480,120 Q482,115 485,115 Z" />
-                              <path d="M550,165 Q580,160 605,170 Q625,180 630,200 Q625,215 605,225 Q580,230 560,220 Q545,205 550,185 Q548,170 550,165 Z" />
-                            </g>
-                            {dealsByCountry.slice(0, 10).map((country, index) => {
-                              const maxValue = dealsByCountry[0]?.value || 1;
-                              const intensity = (country.value / maxValue);
-                              const size = Math.max(12, intensity * 25);
-                              
-                              const countryPositions: Record<string, { x: number, y: number }> = {
-                                "united arab emirates": { x: 600, y: 190 },
-                                "uae": { x: 600, y: 190 },
-                                "united states": { x: 220, y: 130 },
-                                "usa": { x: 220, y: 130 },
-                                "canada": { x: 200, y: 80 },
-                                "brazil": { x: 280, y: 300 },
-                                "uk": { x: 495, y: 125 },
-                                "united kingdom": { x: 495, y: 125 },
-                                "germany": { x: 520, y: 120 },
-                                "france": { x: 500, y: 130 },
-                                "china": { x: 740, y: 150 },
-                                "india": { x: 670, y: 210 },
-                                "japan": { x: 865, y: 175 },
-                                "australia": { x: 820, y: 350 }
-                              };
-                              
-                              const position = countryPositions[country.name.toLowerCase()];
-                              if (!position) return null;
-                              
-                              const getColor = () => {
-                                if (intensity > 0.8) return "#dc2626";
-                                if (intensity > 0.6) return "#ea580c";
-                                if (intensity > 0.4) return "#ca8a04";
-                                if (intensity > 0.2) return "#16a34a";
-                                return "#2563eb";
-                              };
-                              
-                              return (
-                                <g key={country.name}>
-                                  <circle
-                                    cx={position.x}
-                                    cy={position.y}
-                                    r={size + 3}
-                                    fill={getColor()}
-                                    opacity="0.3"
-                                  />
-                                  <circle
-                                    cx={position.x}
-                                    cy={position.y}
-                                    r={size}
-                                    fill={getColor()}
-                                    opacity="0.9"
-                                    stroke="white"
-                                    strokeWidth="2"
-                                    className="cursor-pointer hover:opacity-100 transition-all hover:scale-110"
-                                  />
-                                  <text
-                                    x={position.x}
-                                    y={position.y + 3}
-                                    textAnchor="middle"
-                                    fontSize="11"
-                                    fill="white"
-                                    fontWeight="bold"
-                                    className="pointer-events-none select-none"
-                                  >
-                                    {country.count}
-                                  </text>
-                                </g>
-                              );
-                            })}
-                          </svg>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Deals by Country */}
-                    <div className="relative">
-                      <h3 className="text-lg font-semibold mb-4">Top Countries by Deal Value</h3>
-                      <div className="bg-white dark:bg-gray-800 rounded-lg p-4 h-[400px] overflow-auto">
-                        <div className="space-y-3">
-                          {dealsByCountry.slice(0, 10).map((country, index) => {
-                            const maxValue = dealsByCountry[0]?.value || 1;
-                            const percentage = Math.round((country.value / maxValue) * 100);
-                            
-                            return (
-                              <div key={country.name} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                                <div className="flex items-center gap-3">
-                                  <div 
-                                    className="w-4 h-4 rounded-full" 
-                                    style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                                  />
-                                  <div>
-                                    <div className="font-medium text-gray-900 dark:text-white">
-                                      {country.name}
-                                    </div>
-                                    <div className="text-sm text-gray-500 dark:text-gray-400">
-                                      {country.count} deals
-                                    </div>
-                                  </div>
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
+                    <h3 className="text-lg font-semibold mb-4">Top Countries by Deal Value</h3>
+                    <div className="space-y-3">
+                      {dealsByCountry.slice(0, 10).map((country, index) => {
+                        const maxValue = dealsByCountry[0]?.value || 1;
+                        const percentage = Math.round((country.value / maxValue) * 100);
+                        
+                        return (
+                          <div key={country.name} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                            <div className="flex items-center gap-3">
+                              <div 
+                                className="w-4 h-4 rounded-full" 
+                                style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                              />
+                              <div>
+                                <div className="font-medium text-gray-900 dark:text-white">
+                                  {country.name}
                                 </div>
-                                <div className="text-right">
-                                  <div className="font-semibold text-gray-900 dark:text-white">
-                                    {formatCurrency(country.value)}
-                                  </div>
-                                  <div className="text-sm text-gray-500 dark:text-gray-400">
-                                    {percentage}%
-                                  </div>
+                                <div className="text-sm text-gray-500 dark:text-gray-400">
+                                  {country.count} deals
                                 </div>
                               </div>
-                            );
-                          })}
-                        </div>
-                      </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-semibold text-gray-900 dark:text-white">
+                                {formatCurrency(country.value)}
+                              </div>
+                              <div className="text-sm text-gray-500 dark:text-gray-400">
+                                {percentage}%
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
