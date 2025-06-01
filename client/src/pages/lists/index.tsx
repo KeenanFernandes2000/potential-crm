@@ -68,7 +68,7 @@ const Lists = () => {
   });
 
   const createListMutation = useMutation({
-    mutationFn: (data: InsertList) => apiRequest("/api/lists", "POST", data),
+    mutationFn: (data: InsertList) => apiRequest("POST", "/api/lists", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/lists"] });
       setIsCreateDialogOpen(false);
@@ -89,7 +89,7 @@ const Lists = () => {
 
   const updateListMutation = useMutation({
     mutationFn: ({ id, data }: { id: number; data: InsertList }) => 
-      apiRequest(`/api/lists/${id}`, "PATCH", data),
+      apiRequest("PATCH", `/api/lists/${id}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/lists"] });
       setIsEditDialogOpen(false);
@@ -110,7 +110,7 @@ const Lists = () => {
   });
 
   const deleteListMutation = useMutation({
-    mutationFn: (id: number) => apiRequest(`/api/lists/${id}`, "DELETE"),
+    mutationFn: (id: number) => apiRequest("DELETE", `/api/lists/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/lists"] });
       toast({
