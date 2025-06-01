@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Company } from "@shared/schema";
+import { Company, Partner } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
 import { ColumnDef } from "@tanstack/react-table";
@@ -39,6 +39,10 @@ const Companies = () => {
 
   const { data: companies, isLoading } = useQuery<Company[]>({
     queryKey: ["/api/companies"],
+  });
+
+  const { data: partners } = useQuery<Partner[]>({
+    queryKey: ["/api/partners"],
   });
 
   const deleteMutation = useMutation({
@@ -92,6 +96,13 @@ const Companies = () => {
     setEditingCompany(null);
   };
 
+  // Helper function to get partner name
+  const getPartnerName = (partnerId: number | null) => {
+    if (!partnerId || !partners) return "Direct";
+    const partner = partners.find(p => p.id === partnerId);
+    return partner?.name || "Direct";
+  };
+
   const columns: ColumnDef<Company>[] = [
     {
       accessorKey: "name",
@@ -138,6 +149,19 @@ const Companies = () => {
     {
       accessorKey: "country",
       header: "Country",
+    },
+    {
+      accessorKey: "partnerId",
+      header: "Partner",
+      cell: ({ row }) => {
+        const company = row.original;
+        const partnerName = getPartnerName(company.partnerId);
+        return (
+          <Badge variant={company.partnerId ? "default" : "secondary"}>
+            {partnerName}
+          </Badge>
+        );
+      },
     },
     {
       accessorKey: "tags",
