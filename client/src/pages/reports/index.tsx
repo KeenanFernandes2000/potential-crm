@@ -89,7 +89,7 @@ const Reports = () => {
         });
         
         return Object.entries(countryData).map(([country, data]) => ({
-          country,
+          name: country,
           count: data.count,
           value: data.value,
           deals: data.deals,
@@ -135,7 +135,7 @@ const Reports = () => {
                     <p>No geographic data available. Add countries to your contacts and companies to see the distribution.</p>
                   </div>
                 ) : (
-                  <div className="bg-white dark:bg-gray-800 rounded-lg p-6">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-6 h-[400px] overflow-y-auto">
                     <h3 className="text-lg font-semibold mb-4">Top Countries by Deal Value</h3>
                     <div className="space-y-3">
                       {dealsByCountry.slice(0, 10).map((country, index) => {
@@ -143,22 +143,22 @@ const Reports = () => {
                         const percentage = Math.round((country.value / maxValue) * 100);
                         
                         return (
-                          <div key={country.name} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                            <div className="flex items-center gap-3">
+                          <div key={country.name} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-lg min-h-[60px]">
+                            <div className="flex items-center gap-3 flex-1 min-w-0">
                               <div 
-                                className="w-4 h-4 rounded-full" 
+                                className="w-4 h-4 rounded-full flex-shrink-0" 
                                 style={{ backgroundColor: COLORS[index % COLORS.length] }}
                               />
-                              <div>
-                                <div className="font-medium text-gray-900 dark:text-white">
+                              <div className="min-w-0 flex-1">
+                                <div className="font-medium text-gray-900 dark:text-white truncate">
                                   {country.name}
                                 </div>
                                 <div className="text-sm text-gray-500 dark:text-gray-400">
-                                  {country.count} deals
+                                  {country.count} deal{country.count !== 1 ? 's' : ''}
                                 </div>
                               </div>
                             </div>
-                            <div className="text-right">
+                            <div className="text-right flex-shrink-0 ml-4">
                               <div className="font-semibold text-gray-900 dark:text-white">
                                 {formatCurrency(country.value)}
                               </div>
