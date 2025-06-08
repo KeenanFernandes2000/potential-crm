@@ -886,14 +886,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/activities", async (req, res) => {
     try {
-      console.log("Activity creation request body:", JSON.stringify(req.body, null, 2));
       const data = insertActivitySchema.parse(req.body);
-      console.log("Parsed activity data:", JSON.stringify(data, null, 2));
       const activity = await storage.createActivity(data);
-      console.log("Created activity:", JSON.stringify(activity, null, 2));
       res.status(201).json(activity);
     } catch (error) {
-      console.error("Error creating activity:", error);
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid activity data", errors: error.errors });
       }

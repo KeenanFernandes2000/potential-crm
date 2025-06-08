@@ -57,7 +57,7 @@ const DealDetail = () => {
       type: "note",
       description: "",
       dealId: parseInt(id || "0"),
-      userId: 1, // Default to current user
+      userId: 6, // Default to existing user
       companyId: deal?.companyId || null,
       contactId: deal?.contactId || null,
     },
@@ -90,6 +90,7 @@ const DealDetail = () => {
     createActivityMutation.mutate({
       ...data,
       dealId: parseInt(id || "0"),
+      userId: 6, // Use valid user ID
       companyId: deal?.companyId || null,
       contactId: deal?.contactId || null,
     });
