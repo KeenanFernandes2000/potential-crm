@@ -134,7 +134,7 @@ export function InvoiceForm({ isOpen, onClose, invoice, wonDeals }: InvoiceFormP
                     <SelectContent>
                       {wonDeals.map((deal) => (
                         <SelectItem key={deal.id} value={deal.id.toString()}>
-                          {deal.title} - {deal.value ? `$${deal.value.toLocaleString()}` : 'No amount'}
+                          {deal.title} - {deal.companyName || 'No Company'} - {deal.value ? `$${deal.value.toLocaleString()}` : 'No amount'}
                         </SelectItem>
                       ))}
                     </SelectContent>
