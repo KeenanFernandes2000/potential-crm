@@ -64,10 +64,7 @@ const DealDetail = () => {
   });
 
   const createActivityMutation = useMutation({
-    mutationFn: (data: ActivityFormData) => apiRequest("/api/activities", {
-      method: "POST",
-      body: data,
-    }),
+    mutationFn: (data: ActivityFormData) => apiRequest("POST", "/api/activities", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/activities"] });
       setShowActivityForm(false);
