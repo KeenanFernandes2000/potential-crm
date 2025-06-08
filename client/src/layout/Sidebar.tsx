@@ -15,7 +15,8 @@ import {
   Settings,
   FileSpreadsheet,
   UserCheck,
-  Handshake
+  Handshake,
+  Receipt
 } from "lucide-react";
 
 interface SidebarProps {
@@ -57,6 +58,11 @@ const Sidebar = ({ isOpen, closeSidebar }: SidebarProps) => {
       path: "/quotations", 
       name: "Quotations",
       icon: <FileSpreadsheet className="h-5 w-5 mr-3" />
+    },
+    { 
+      path: "/invoiced", 
+      name: "Invoiced",
+      icon: <Receipt className="h-5 w-5 mr-3" />
     },
     { 
       path: "/lists", 

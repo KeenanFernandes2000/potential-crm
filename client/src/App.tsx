@@ -20,6 +20,7 @@ import SocialMedia from "@/pages/social";
 import Reports from "@/pages/reports";
 import Settings from "@/pages/settings";
 import Quotations from "@/pages/quotations";
+import Invoiced from "@/pages/invoiced";
 import Users from "@/pages/users";
 import LoginPage from "@/pages/auth/LoginPage";
 import NotFound from "@/pages/not-found";
@@ -48,6 +49,7 @@ function ProtectedRoutes() {
       <Route path="/partners" component={Partners} />
       <Route path="/deals" component={Deals} />
       <Route path="/quotations" component={Quotations} />
+      <Route path="/invoiced" component={Invoiced} />
       <Route path="/lists" component={Lists} />
       <Route path="/forms" component={Forms} />
       <Route path="/forms/submissions/:id" component={FormSubmissions} />
