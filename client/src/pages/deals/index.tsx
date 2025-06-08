@@ -25,7 +25,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import DealForm from "./DealForm";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { format } from "date-fns";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -399,7 +399,7 @@ const Deals = () => {
               <DropdownMenuItem onClick={() => handleEdit(deal)}>
                 Edit
               </DropdownMenuItem>
-              <DropdownMenuItem>View details</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => window.location.href = `/deals/${deal.id}`}>View details</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => handleMoveToNextStage(deal)}>Move to next stage</DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleMarkAsWon(deal)}>Mark as won</DropdownMenuItem>
@@ -575,6 +575,12 @@ const Deals = () => {
 
       <Dialog open={isCreateModalOpen} onOpenChange={closeModal}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingDeal ? 'Edit Deal' : 'Create New Deal'}</DialogTitle>
+            <DialogDescription>
+              {editingDeal ? 'Update the deal information below.' : 'Fill in the details to create a new deal.'}
+            </DialogDescription>
+          </DialogHeader>
           <DealForm 
             deal={editingDeal} 
             onClose={closeModal} 
