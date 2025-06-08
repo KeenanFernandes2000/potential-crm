@@ -2,6 +2,12 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Contact } from "@shared/schema";
 import { Button } from "@/components/ui/button";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DataTable } from "@/components/ui/data-table";
 import { ColumnDef } from "@tanstack/react-table";
 import { ArrowUpDown, MoreHorizontal, Plus, FileUp, FileDown, Activity } from "lucide-react";
@@ -532,7 +538,277 @@ const Contacts = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Activity Logging Dialog */}
+      <Dialog open={isLogActivityOpen} onOpenChange={setIsLogActivityOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Log Activity</DialogTitle>
+          </DialogHeader>
+          <ActivityForm 
+            contact={selectedContact}
+            onSuccess={() => setIsLogActivityOpen(false)}
+            createActivityMutation={createActivityMutation}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Task Creation Dialog */}
+      <Dialog open={isCreateTaskOpen} onOpenChange={setIsCreateTaskOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create Task</DialogTitle>
+          </DialogHeader>
+          <TaskForm 
+            contact={selectedContact}
+            onSuccess={() => setIsCreateTaskOpen(false)}
+            createTaskMutation={createTaskMutation}
+          />
+        </DialogContent>
+      </Dialog>
     </section>
+  );
+};
+
+// Activity Form Schema
+const activityFormSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  type: z.string().min(1, "Type is required"),
+  description: z.string().optional(),
+});
+
+// Activity Form Component
+const ActivityForm = ({ contact, onSuccess, createActivityMutation }: {
+  contact: Contact | null;
+  onSuccess: () => void;
+  createActivityMutation: any;
+}) => {
+  const form = useForm<z.infer<typeof activityFormSchema>>({
+    resolver: zodResolver(activityFormSchema),
+    defaultValues: {
+      title: "",
+      type: "call",
+      description: "",
+    },
+  });
+
+  const onSubmit = async (values: z.infer<typeof activityFormSchema>) => {
+    if (!contact) return;
+    
+    const activityData = {
+      ...values,
+      contactId: contact.id,
+      companyId: contact.companyId,
+    };
+    
+    createActivityMutation.mutate(activityData);
+  };
+
+  if (!contact) return null;
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="title"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Activity Title</FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder={`Activity for ${contact.firstName} ${contact.lastName}`}
+                  {...field} 
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="type"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Activity Type</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select activity type" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="call">Phone Call</SelectItem>
+                  <SelectItem value="email">Email</SelectItem>
+                  <SelectItem value="meeting">Meeting</SelectItem>
+                  <SelectItem value="note">Note</SelectItem>
+                  <SelectItem value="task">Task</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description</FormLabel>
+              <FormControl>
+                <Textarea 
+                  placeholder="Activity details..."
+                  {...field} 
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="flex justify-end space-x-2">
+          <Button variant="outline" type="button" onClick={onSuccess}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={createActivityMutation.isPending}>
+            {createActivityMutation.isPending ? "Logging..." : "Log Activity"}
+          </Button>
+        </div>
+      </form>
+    </Form>
+  );
+};
+
+// Task Form Schema
+const taskFormSchema = z.object({
+  title: z.string().min(1, "Title is required"),
+  description: z.string().optional(),
+  priority: z.string().optional(),
+  dueDate: z.string().optional(),
+});
+
+// Task Form Component
+const TaskForm = ({ contact, onSuccess, createTaskMutation }: {
+  contact: Contact | null;
+  onSuccess: () => void;
+  createTaskMutation: any;
+}) => {
+  const form = useForm<z.infer<typeof taskFormSchema>>({
+    resolver: zodResolver(taskFormSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      priority: "Medium",
+      dueDate: "",
+    },
+  });
+
+  const onSubmit = async (values: z.infer<typeof taskFormSchema>) => {
+    if (!contact) return;
+    
+    const taskData = {
+      ...values,
+      contactId: contact.id,
+      companyId: contact.companyId,
+      completed: false,
+      dueDate: values.dueDate ? new Date(values.dueDate) : null,
+    };
+    
+    createTaskMutation.mutate(taskData);
+  };
+
+  if (!contact) return null;
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="title"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Task Title</FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder={`Follow up with ${contact.firstName} ${contact.lastName}`}
+                  {...field} 
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Description</FormLabel>
+              <FormControl>
+                <Textarea 
+                  placeholder="Task details..."
+                  {...field} 
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="priority"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Priority</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select priority" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="Low">Low</SelectItem>
+                  <SelectItem value="Medium">Medium</SelectItem>
+                  <SelectItem value="High">High</SelectItem>
+                  <SelectItem value="Urgent">Urgent</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="dueDate"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Due Date</FormLabel>
+              <FormControl>
+                <Input 
+                  type="datetime-local"
+                  {...field} 
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="flex justify-end space-x-2">
+          <Button variant="outline" type="button" onClick={onSuccess}>
+            Cancel
+          </Button>
+          <Button type="submit" disabled={createTaskMutation.isPending}>
+            {createTaskMutation.isPending ? "Creating..." : "Create Task"}
+          </Button>
+        </div>
+      </form>
+    </Form>
   );
 };
 
