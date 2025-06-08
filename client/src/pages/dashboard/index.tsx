@@ -254,29 +254,23 @@ const Dashboard = () => {
         <StatisticCard
           title="Direct Deals"
           value={statsLoading ? "Loading..." : stats?.funnelBreakdown?.direct?.formatted || "$0"}
-          change={0}
           icon={DollarSign}
           iconColor="text-blue-500"
           iconBgColor="bg-blue-100"
-          description={`${stats?.funnelBreakdown?.direct?.percentage || 0}% of total funnel`}
         />
         <StatisticCard
           title="Partner Deals"
           value={statsLoading ? "Loading..." : stats?.funnelBreakdown?.partner?.formatted || "$0"}
-          change={0}
           icon={Users}
           iconColor="text-green-500"
           iconBgColor="bg-green-100"
-          description={`${stats?.funnelBreakdown?.partner?.percentage || 0}% of total funnel`}
         />
         <StatisticCard
           title="Total Funnel Value"
           value={statsLoading ? "Loading..." : stats?.funnelBreakdown?.total?.formatted || "$0"}
-          change={0}
           icon={BarChart3}
           iconColor="text-purple-500"
           iconBgColor="bg-purple-100"
-          description="All active deals"
         />
       </div>
 
