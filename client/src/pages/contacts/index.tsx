@@ -32,6 +32,10 @@ const Contacts = () => {
     queryKey: ["/api/contacts"],
   });
 
+  const { data: companies } = useQuery({
+    queryKey: ["/api/companies"],
+  });
+
   // Bulk import mutation
   const bulkImportContacts = useMutation({
     mutationFn: async (contactsData: any[]) => {
@@ -225,6 +229,15 @@ const Contacts = () => {
     {
       accessorKey: "email",
       header: "Email",
+    },
+    {
+      accessorKey: "company",
+      header: "Company",
+      cell: ({ row }) => {
+        const contact = row.original;
+        const company = companies?.find(c => c.id === contact.companyId);
+        return <span>{company?.name || "N/A"}</span>;
+      },
     },
     {
       accessorKey: "phone",
