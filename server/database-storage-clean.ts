@@ -197,6 +197,11 @@ export class DatabaseStorage implements IStorage {
     return newActivity;
   }
 
+  async deleteActivity(id: number): Promise<boolean> {
+    const result = await db.delete(activities).where(eq(activities.id, id));
+    return (result.rowCount || 0) > 0;
+  }
+
   // Lists
   async getLists(): Promise<List[]> {
     return db.select().from(lists);

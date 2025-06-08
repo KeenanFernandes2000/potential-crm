@@ -10,7 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Edit, DollarSign, Calendar, User, Building2, Users, Phone, Mail, FileText } from "lucide-react";
+import { ArrowLeft, Edit, DollarSign, Calendar, User, Building2, Users, Phone, Mail, FileText, Trash2 } from "lucide-react";
 import { format } from "date-fns";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -82,6 +82,24 @@ const DealDetail = () => {
       toast({
         title: "Error",
         description: "Failed to add activity. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const deleteActivityMutation = useMutation({
+    mutationFn: (activityId: number) => apiRequest("DELETE", `/api/activities/${activityId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/activities"] });
+      toast({
+        title: "Activity deleted",
+        description: "The activity has been successfully deleted.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to delete activity. Please try again.",
         variant: "destructive",
       });
     },
@@ -236,9 +254,20 @@ const DealDetail = () => {
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
                             <h4 className="font-medium text-gray-900">{activity.title}</h4>
-                            <span className="text-sm text-gray-500">
-                              {activity.createdAt ? format(new Date(activity.createdAt), "MMM dd, yyyy 'at' HH:mm") : ""}
-                            </span>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-sm text-gray-500">
+                                {activity.createdAt ? format(new Date(activity.createdAt), "MMM dd, yyyy 'at' HH:mm") : ""}
+                              </span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => deleteActivityMutation.mutate(activity.id)}
+                                disabled={deleteActivityMutation.isPending}
+                                className="h-8 w-8 p-0 text-gray-400 hover:text-red-600"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                           {activity.description && (
                             <p className="text-sm text-gray-600 mt-1">{activity.description}</p>
