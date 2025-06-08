@@ -1,7 +1,7 @@
 import { 
   users, contacts, companies, deals, tasks, activities, lists, forms, formSubmissions, listContacts,
   quotations, quotationTemplates, socialAccounts, socialPosts, socialCampaigns,
-  emailTemplates, emailCampaigns, emailCampaignRecipients, partners,
+  emailTemplates, emailCampaigns, emailCampaignRecipients, partners, invoices,
   type User, type InsertUser, 
   type Contact, type InsertContact,
   type Company, type InsertCompany,
@@ -18,7 +18,8 @@ import {
   type EmailTemplate, type InsertEmailTemplate,
   type EmailCampaign, type InsertEmailCampaign,
   type EmailCampaignRecipient, type InsertEmailCampaignRecipient,
-  type Partner, type InsertPartner
+  type Partner, type InsertPartner,
+  type Invoice, type InsertInvoice
 } from "@shared/schema";
 
 // modify the interface with any CRUD methods
@@ -161,6 +162,15 @@ export interface IStorage {
   sendEmailCampaign(campaignId: number): Promise<boolean>;
   sendQuotationEmail(quotationId: number): Promise<boolean>;
   sendEmailToList(listId: number, subject: string, body: string, fromName: string, fromEmail: string): Promise<boolean>;
+
+  // Invoices
+  getInvoices(): Promise<Invoice[]>;
+  getInvoice(id: number): Promise<Invoice | undefined>;
+  getInvoicesByDeal(dealId: number): Promise<Invoice[]>;
+  getWonDeals(): Promise<Deal[]>;
+  createInvoice(invoice: InsertInvoice): Promise<Invoice>;
+  updateInvoice(id: number, invoice: InsertInvoice): Promise<Invoice | undefined>;
+  deleteInvoice(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {

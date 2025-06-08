@@ -12,6 +12,7 @@ export const postStatusEnum = pgEnum('post_status', ['Draft', 'Scheduled', 'Publ
 export const campaignStatusEnum = pgEnum('campaign_status', ['Active', 'Paused', 'Completed', 'Planned']);
 export const quotationStatusEnum = pgEnum('quotation_status', ['Draft', 'Sent', 'Accepted', 'Rejected', 'Expired']);
 export const emailStatusEnum = pgEnum('email_status', ['Draft', 'Scheduled', 'Sent', 'Failed']);
+export const invoiceStatusEnum = pgEnum('invoice_status', ['Not sent', 'Under Processing', 'Paid']);
 
 // Users table
 export const users = pgTable("users", {
@@ -291,6 +292,19 @@ export const emailCampaignRecipients = pgTable("email_campaign_recipients", {
   error: text("error"), // For storing error messages if sending fails
 });
 
+// Invoices table
+export const invoices = pgTable("invoices", {
+  id: serial("id").primaryKey(),
+  dealId: integer("deal_id").references(() => deals.id).notNull(),
+  invoiceDate: timestamp("invoice_date").notNull(),
+  amount: integer("amount").notNull(),
+  currency: text("currency").default("USD"),
+  status: invoiceStatusEnum("status").default("Not sent"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Schema validations
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
@@ -416,6 +430,14 @@ export const insertPartnerSchema = createInsertSchema(partners).omit({
   updatedAt: true,
 });
 
+export const insertInvoiceSchema = createInsertSchema(invoices).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).extend({
+  invoiceDate: z.string(),
+});
+
 // Types for application
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -467,3 +489,6 @@ export type EmailCampaignRecipient = typeof emailCampaignRecipients.$inferSelect
 
 export type InsertPartner = z.infer<typeof insertPartnerSchema>;
 export type Partner = typeof partners.$inferSelect;
+
+export type InsertInvoice = z.infer<typeof insertInvoiceSchema>;
+export type Invoice = typeof invoices.$inferSelect;
