@@ -54,6 +54,7 @@ const Deals = () => {
 
   const { data: deals, isLoading } = useQuery<Deal[]>({
     queryKey: ["/api/deals"],
+    staleTime: 0,
   });
   
   const { data: companies } = useQuery({
@@ -72,6 +73,7 @@ const Deals = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/deals"] });
+      queryClient.refetchQueries({ queryKey: ["/api/deals"] });
       toast({
         title: "Deal updated",
         description: "The deal has been updated successfully.",
