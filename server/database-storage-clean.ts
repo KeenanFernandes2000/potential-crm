@@ -270,6 +270,7 @@ export class DatabaseStorage implements IStorage {
     const allDeals = await db.select().from(deals);
     const allCompanies = await db.select().from(companies);
     const allActivities = await db.select().from(activities).orderBy(sql`created_at DESC`).limit(5);
+    const allInvoices = await db.select().from(invoices);
     
     const totalLeads = allContacts.length;
     const totalDealsCount = allDeals.length;
@@ -285,19 +286,30 @@ export class DatabaseStorage implements IStorage {
     );
     const closedWonCount = closedWonDeals.length;
     
-    // Calculate total revenue from closed won deals
-    const revenue = closedWonDeals.reduce((sum, deal) => sum + (deal.value || 0), 0);
+    // Calculate invoice metrics
+    const notSentInvoices = allInvoices.filter(invoice => invoice.status === 'Not sent');
+    const underProcessingInvoices = allInvoices.filter(invoice => invoice.status === 'Under Processing');
+    
+    const notSentAmount = notSentInvoices.reduce((sum, invoice) => sum + (invoice.amount || 0), 0);
+    const underProcessingAmount = underProcessingInvoices.reduce((sum, invoice) => sum + (invoice.amount || 0), 0);
     
     // Calculate conversion rate (closed won / total deals)
     const conversionRate = totalDealsCount > 0 ? ((closedWonCount / totalDealsCount) * 100).toFixed(1) : "0";
     
-    // Format revenue
-    const formattedRevenue = new Intl.NumberFormat('en-US', {
+    // Format invoice amounts (convert from cents to dollars)
+    const formattedNotSentAmount = new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
       minimumFractionDigits: 0,
       maximumFractionDigits: 0
-    }).format(revenue);
+    }).format(notSentAmount / 100);
+
+    const formattedUnderProcessingAmount = new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(underProcessingAmount / 100);
 
     // Calculate pipeline stages
     const stageMapping = {
@@ -393,9 +405,9 @@ export class DatabaseStorage implements IStorage {
     }).format(totalFunnelValue);
 
     return {
-      totalLeads,
+      invoicesNotSent: formattedNotSentAmount,
       openDeals: openDealsCount,
-      revenue: formattedRevenue,
+      invoicesUnderProcessing: formattedUnderProcessingAmount,
       conversionRate: `${conversionRate}%`,
       pipelineStages,
       recentActivities: allActivities,
