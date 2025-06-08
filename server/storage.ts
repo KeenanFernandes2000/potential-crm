@@ -97,6 +97,7 @@ export interface IStorage {
   // Activities
   getActivities(): Promise<Activity[]>;
   createActivity(activity: InsertActivity): Promise<Activity>;
+  deleteActivity(id: number): Promise<boolean>;
 
   // Lists
   getLists(): Promise<List[]>;
@@ -564,6 +565,10 @@ export class MemStorage implements IStorage {
     };
     this.activitiesMap.set(id, newActivity);
     return newActivity;
+  }
+
+  async deleteActivity(id: number): Promise<boolean> {
+    return this.activitiesMap.delete(id);
   }
 
   // Lists
