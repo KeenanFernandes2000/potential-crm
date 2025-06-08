@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/context/AuthContext";
 import MainLayout from "@/layout/MainLayout";
 import Dashboard from "@/pages/dashboard";
 import Contacts from "@/pages/contacts";
+import ContactDetail from "@/pages/contacts/ContactDetail";
 import Companies from "@/pages/companies";
 import Partners from "@/pages/partners";
 import Deals from "@/pages/deals";
@@ -45,6 +46,7 @@ function ProtectedRoutes() {
       <Route path="/login" component={() => { window.location.href = "/"; return null; }} />
       <Route path="/" component={Dashboard} />
       <Route path="/contacts" component={Contacts} />
+      <Route path="/contacts/:id" component={ContactDetail} />
       <Route path="/companies" component={Companies} />
       <Route path="/partners" component={Partners} />
       <Route path="/deals" component={Deals} />

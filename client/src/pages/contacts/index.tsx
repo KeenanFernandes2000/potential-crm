@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Contact } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { useForm } from "react-hook-form";
@@ -28,6 +29,7 @@ import { useToast } from "@/hooks/use-toast";
 
 const Contacts = () => {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
@@ -246,6 +248,10 @@ const Contacts = () => {
   const handleEdit = (contact: Contact) => {
     setEditingContact(contact);
     setIsCreateModalOpen(true);
+  };
+
+  const handleViewDetails = (contact: Contact) => {
+    setLocation(`/contacts/${contact.id}`);
   };
 
   const handleLogActivity = (contact: Contact) => {
