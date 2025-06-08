@@ -1,6 +1,6 @@
 import { useParams, useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Deal, Company, Partner, Contact, insertActivitySchema } from "@shared/schema";
+import { Deal, Company, Partner, Contact, Activity, insertActivitySchema } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +10,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Edit, DollarSign, Calendar, User, Building2, Users } from "lucide-react";
+import { ArrowLeft, Edit, DollarSign, Calendar, User, Building2, Users, Phone, Mail, FileText } from "lucide-react";
 import { format } from "date-fns";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -48,6 +48,10 @@ const DealDetail = () => {
 
   const { data: contacts } = useQuery<Contact[]>({
     queryKey: ["/api/contacts"],
+  });
+
+  const { data: activities } = useQuery<Activity[]>({
+    queryKey: ["/api/activities"],
   });
 
   const form = useForm<ActivityFormData>({
@@ -210,13 +214,47 @@ const DealDetail = () => {
             </CardContent>
           </Card>
 
-          {/* Timeline placeholder */}
+          {/* Activity Timeline */}
           <Card>
             <CardHeader>
               <CardTitle>Activity Timeline</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-gray-500">Activity timeline coming soon...</p>
+              {activities && activities.length > 0 ? (
+                <div className="space-y-4">
+                  {activities
+                    .filter(activity => activity.dealId === parseInt(id || "0"))
+                    .sort((a, b) => new Date(b.createdAt || "").getTime() - new Date(a.createdAt || "").getTime())
+                    .map((activity) => (
+                      <div key={activity.id} className="flex items-start space-x-3 p-4 border border-gray-200 rounded-lg">
+                        <div className="flex-shrink-0">
+                          {activity.type === "call" && <Phone className="h-5 w-5 text-blue-600" />}
+                          {activity.type === "email" && <Mail className="h-5 w-5 text-green-600" />}
+                          {activity.type === "meeting" && <Calendar className="h-5 w-5 text-purple-600" />}
+                          {activity.type === "note" && <FileText className="h-5 w-5 text-gray-600" />}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                            <h4 className="font-medium text-gray-900">{activity.title}</h4>
+                            <span className="text-sm text-gray-500">
+                              {activity.createdAt ? format(new Date(activity.createdAt), "MMM dd, yyyy 'at' HH:mm") : ""}
+                            </span>
+                          </div>
+                          {activity.description && (
+                            <p className="text-sm text-gray-600 mt-1">{activity.description}</p>
+                          )}
+                          <div className="flex items-center space-x-4 mt-2">
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800 capitalize">
+                              {activity.type}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              ) : (
+                <p className="text-gray-500">No activities recorded yet. Add your first activity using the button above.</p>
+              )}
             </CardContent>
           </Card>
         </div>
