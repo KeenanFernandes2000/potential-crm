@@ -11,6 +11,7 @@ import ContactDetail from "@/pages/contacts/ContactDetail";
 import Companies from "@/pages/companies";
 import Partners from "@/pages/partners";
 import Deals from "@/pages/deals";
+import DealDetail from "@/pages/deals/DealDetail";
 import Lists from "@/pages/lists";
 import Forms from "@/pages/forms";
 import FormEmbed from "@/pages/forms/embed/[id]";
@@ -50,6 +51,7 @@ function ProtectedRoutes() {
       <Route path="/companies" component={Companies} />
       <Route path="/partners" component={Partners} />
       <Route path="/deals" component={Deals} />
+      <Route path="/deals/:id" component={DealDetail} />
       <Route path="/quotations" component={Quotations} />
       <Route path="/invoiced" component={Invoiced} />
       <Route path="/lists" component={Lists} />

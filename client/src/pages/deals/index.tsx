@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { Deal } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
@@ -40,6 +41,7 @@ interface FilterState {
 }
 
 const Deals = () => {
+  const [, setLocation] = useLocation();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [editingDeal, setEditingDeal] = useState<Deal | null>(null);
   const [showFilters, setShowFilters] = useState(false);
@@ -399,7 +401,7 @@ const Deals = () => {
               <DropdownMenuItem onClick={() => handleEdit(deal)}>
                 Edit
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => window.location.href = `/deals/${deal.id}`}>View details</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setLocation(`/deals/${deal.id}`)}>View details</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => handleMoveToNextStage(deal)}>Move to next stage</DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleMarkAsWon(deal)}>Mark as won</DropdownMenuItem>
