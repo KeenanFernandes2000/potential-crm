@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Deal } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { DataTable } from "@/components/ui/data-table";
@@ -62,6 +62,31 @@ const Deals = () => {
 
   const { data: partners } = useQuery({
     queryKey: ["/api/partners"],
+  });
+
+  const { toast } = useToast();
+
+  const updateDealMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Partial<Deal> }) => {
+      return apiRequest(`/api/deals/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/deals"] });
+      toast({
+        title: "Deal updated",
+        description: "The deal has been updated successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update the deal. Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
   // Filtered deals based on current filters
@@ -128,8 +153,6 @@ const Deals = () => {
     setIsCreateModalOpen(false);
     setEditingDeal(null);
   };
-  
-  const { toast } = useToast();
 
   const handleDelete = async (dealId: number) => {
     try {
@@ -147,6 +170,33 @@ const Deals = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleMoveToNextStage = (deal: Deal) => {
+    const stages = ["Inquiry", "Qualified", "Proposal", "Negotiation", "Won"];
+    const currentStageIndex = stages.indexOf(deal.stage || "Inquiry");
+    
+    if (currentStageIndex < stages.length - 1) {
+      const nextStage = stages[currentStageIndex + 1];
+      updateDealMutation.mutate({
+        id: deal.id,
+        data: { stage: nextStage }
+      });
+    }
+  };
+
+  const handleMarkAsWon = (deal: Deal) => {
+    updateDealMutation.mutate({
+      id: deal.id,
+      data: { stage: "Won" }
+    });
+  };
+
+  const handleMarkAsLost = (deal: Deal) => {
+    updateDealMutation.mutate({
+      id: deal.id,
+      data: { stage: "Lost" }
+    });
   };
 
   const formatCurrency = (value?: number, currency = "USD") => {
