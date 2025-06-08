@@ -36,7 +36,7 @@ export function InvoiceForm({ isOpen, onClose, invoice, wonDeals }: InvoiceFormP
       invoiceDate: invoice?.invoiceDate 
         ? format(new Date(invoice.invoiceDate), "yyyy-MM-dd")
         : format(new Date(), "yyyy-MM-dd"),
-      amount: invoice?.amount || 0,
+      amount: invoice?.amount ? invoice.amount / 100 : 0, // Convert cents to dollars for display
       currency: invoice?.currency || "USD",
       status: invoice?.status || "Not sent",
       notes: invoice?.notes || "",
@@ -83,10 +83,16 @@ export function InvoiceForm({ isOpen, onClose, invoice, wonDeals }: InvoiceFormP
   });
 
   const onSubmit = (data: FormData) => {
+    // Convert dollar amount to cents for backend storage
+    const dataWithCents = {
+      ...data,
+      amount: Math.round(data.amount * 100)
+    };
+    
     if (invoice) {
-      updateMutation.mutate(data);
+      updateMutation.mutate(dataWithCents);
     } else {
-      createMutation.mutate(data);
+      createMutation.mutate(dataWithCents);
     }
   };
 
@@ -127,7 +133,7 @@ export function InvoiceForm({ isOpen, onClose, invoice, wonDeals }: InvoiceFormP
                     <SelectContent>
                       {wonDeals.map((deal) => (
                         <SelectItem key={deal.id} value={deal.id.toString()}>
-                          {deal.title} - {deal.value ? `$${(deal.value / 100).toLocaleString()}` : 'No amount'}
+                          {deal.title} - {deal.value ? `$${deal.value.toLocaleString()}` : 'No amount'}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -186,11 +192,12 @@ export function InvoiceForm({ isOpen, onClose, invoice, wonDeals }: InvoiceFormP
                 name="amount"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Amount (in cents)</FormLabel>
+                    <FormLabel>Amount</FormLabel>
                     <FormControl>
                       <Input
                         type="number"
-                        placeholder="e.g., 150000 for $1,500.00"
+                        step="0.01"
+                        placeholder="e.g., 1500.00"
                         {...field}
                       />
                     </FormControl>
@@ -233,6 +240,7 @@ export function InvoiceForm({ isOpen, onClose, invoice, wonDeals }: InvoiceFormP
                     <Textarea
                       placeholder="Add any additional notes about this invoice..."
                       {...field}
+                      value={field.value || ""}
                     />
                   </FormControl>
                   <FormMessage />
