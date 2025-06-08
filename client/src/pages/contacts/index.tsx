@@ -713,7 +713,7 @@ const TaskForm = ({ contact, onSuccess, createTaskMutation }: {
       contactId: contact.id,
       companyId: contact.companyId,
       completed: false,
-      dueDate: values.dueDate ? new Date(values.dueDate) : null,
+      dueDate: values.dueDate ? values.dueDate : null,
     };
     
     createTaskMutation.mutate(taskData);

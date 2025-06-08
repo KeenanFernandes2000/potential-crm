@@ -762,14 +762,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Convert dueDate string to Date object if provided
       if (data.dueDate && typeof data.dueDate === 'string') {
         console.log("Original dueDate:", data.dueDate);
-        // Handle both YYYY-MM-DD and DD/MM/YYYY formats
-        if (data.dueDate.includes('/')) {
+        
+        // Handle datetime-local format (YYYY-MM-DDTHH:MM)
+        if (data.dueDate.includes('T')) {
+          data.dueDate = new Date(data.dueDate);
+        }
+        // Handle date-only format (YYYY-MM-DD)
+        else if (data.dueDate.includes('-') && !data.dueDate.includes('/')) {
+          data.dueDate = new Date(data.dueDate + 'T00:00:00');
+        }
+        // Handle DD/MM/YYYY format
+        else if (data.dueDate.includes('/')) {
           const [day, month, year] = data.dueDate.split('/');
           data.dueDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
-        } else if (data.dueDate.includes('-')) {
-          // Handle YYYY-MM-DD format
-          data.dueDate = new Date(data.dueDate + 'T00:00:00');
-        } else {
+        }
+        // Fallback to direct parsing
+        else {
           data.dueDate = new Date(data.dueDate);
         }
         
