@@ -374,7 +374,7 @@ const Contacts = () => {
               <DropdownMenuItem onClick={() => handleEdit(contact)}>
                 Edit
               </DropdownMenuItem>
-              <DropdownMenuItem>View details</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleViewDetails(contact)}>View details</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem>Add to list</DropdownMenuItem>
               <DropdownMenuItem onClick={() => handleCreateTask(contact)}>Create task</DropdownMenuItem>
@@ -550,6 +550,9 @@ const Contacts = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Log Activity</DialogTitle>
+            <DialogDescription>
+              Record an interaction or note for this contact.
+            </DialogDescription>
           </DialogHeader>
           <ActivityForm 
             contact={selectedContact}
@@ -564,6 +567,9 @@ const Contacts = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create Task</DialogTitle>
+            <DialogDescription>
+              Create a new task and assign it to this contact.
+            </DialogDescription>
           </DialogHeader>
           <TaskForm 
             contact={selectedContact}
