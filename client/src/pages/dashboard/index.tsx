@@ -222,7 +222,6 @@ const Dashboard = () => {
         <StatisticCard
           title="Invoices Under Processing"
           value={statsLoading ? "Loading..." : stats?.invoicesUnderProcessing || "$0"}
-          change={stats?.invoicesUnderProcessingChange || 0}
           icon={DollarSign}
           iconColor="text-yellow-500"
           iconBgColor="bg-yellow-100"
@@ -230,7 +229,6 @@ const Dashboard = () => {
         <StatisticCard
           title="Open Deals"
           value={statsLoading ? "Loading..." : stats?.openDeals?.toString() || "0"}
-          change={stats?.openDealsChange || 0}
           icon={DollarSign}
           iconColor="text-accent-500"
           iconBgColor="bg-accent-100"
@@ -238,7 +236,6 @@ const Dashboard = () => {
         <StatisticCard
           title="Invoices Not Sent"
           value={statsLoading ? "Loading..." : stats?.invoicesNotSent || "$0"}
-          change={stats?.invoicesNotSentChange || 0}
           icon={DollarSign}
           iconColor="text-red-500"
           iconBgColor="bg-red-100"
@@ -246,7 +243,6 @@ const Dashboard = () => {
         <StatisticCard
           title="Conversion Rate"
           value={statsLoading ? "Loading..." : stats?.conversionRate || "0%"}
-          change={stats?.conversionRateChange || 0}
           icon={BarChart3}
           iconColor="text-primary-500"
           iconBgColor="bg-primary-100"
