@@ -402,9 +402,9 @@ const Deals = () => {
               </DropdownMenuItem>
               <DropdownMenuItem>View details</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Move to next stage</DropdownMenuItem>
-              <DropdownMenuItem>Mark as won</DropdownMenuItem>
-              <DropdownMenuItem>Mark as lost</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleMoveToNextStage(deal)}>Move to next stage</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleMarkAsWon(deal)}>Mark as won</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleMarkAsLost(deal)}>Mark as lost</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem 
                 className="text-red-600"
