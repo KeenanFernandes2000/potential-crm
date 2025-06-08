@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
-import { insertContactSchema, insertCompanySchema, insertPartnerSchema, insertDealSchema, insertTaskSchema, insertActivitySchema, insertListSchema, insertFormSchema, insertQuotationSchema, insertQuotationTemplateSchema, insertEmailTemplateSchema, insertEmailCampaignSchema, insertUserSchema, loginSchema } from "@shared/schema";
+import { insertContactSchema, insertCompanySchema, insertPartnerSchema, insertDealSchema, insertTaskSchema, insertActivitySchema, insertListSchema, insertFormSchema, insertQuotationSchema, insertQuotationTemplateSchema, insertEmailTemplateSchema, insertEmailCampaignSchema, insertUserSchema, loginSchema, insertInvoiceSchema } from "@shared/schema";
 import twitterRoutes from "./routes/twitter";
 import bcrypt from "bcrypt";
 
@@ -1596,6 +1596,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error in test email endpoint:", error);
       res.status(500).json({ message: "Error in test email endpoint", error: String(error) });
+    }
+  });
+
+  // Invoice Routes
+  app.get("/api/invoices", async (req, res) => {
+    try {
+      const invoices = await storage.getInvoices();
+      res.json(invoices);
+    } catch (error) {
+      console.error("Error fetching invoices:", error);
+      res.status(500).json({ message: "Failed to fetch invoices" });
+    }
+  });
+
+  app.get("/api/invoices/won-deals", async (req, res) => {
+    try {
+      const wonDeals = await storage.getWonDeals();
+      res.json(wonDeals);
+    } catch (error) {
+      console.error("Error fetching won deals:", error);
+      res.status(500).json({ message: "Failed to fetch won deals" });
+    }
+  });
+
+  app.get("/api/invoices/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const invoice = await storage.getInvoice(id);
+      if (!invoice) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+      res.json(invoice);
+    } catch (error) {
+      console.error("Error fetching invoice:", error);
+      res.status(500).json({ message: "Failed to fetch invoice" });
+    }
+  });
+
+  app.get("/api/invoices/deal/:dealId", async (req, res) => {
+    try {
+      const dealId = parseInt(req.params.dealId);
+      const invoices = await storage.getInvoicesByDeal(dealId);
+      res.json(invoices);
+    } catch (error) {
+      console.error("Error fetching invoices for deal:", error);
+      res.status(500).json({ message: "Failed to fetch invoices for deal" });
+    }
+  });
+
+  app.post("/api/invoices", async (req, res) => {
+    try {
+      const invoiceData = insertInvoiceSchema.parse(req.body);
+      const invoice = await storage.createInvoice(invoiceData);
+      res.status(201).json(invoice);
+    } catch (error) {
+      console.error("Error creating invoice:", error);
+      res.status(500).json({ message: "Failed to create invoice" });
+    }
+  });
+
+  app.put("/api/invoices/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const invoiceData = insertInvoiceSchema.parse(req.body);
+      const invoice = await storage.updateInvoice(id, invoiceData);
+      if (!invoice) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+      res.json(invoice);
+    } catch (error) {
+      console.error("Error updating invoice:", error);
+      res.status(500).json({ message: "Failed to update invoice" });
+    }
+  });
+
+  app.delete("/api/invoices/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteInvoice(id);
+      if (!success) {
+        return res.status(404).json({ message: "Invoice not found" });
+      }
+      res.json({ message: "Invoice deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting invoice:", error);
+      res.status(500).json({ message: "Failed to delete invoice" });
     }
   });
 

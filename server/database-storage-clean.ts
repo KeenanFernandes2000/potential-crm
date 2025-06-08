@@ -1,7 +1,7 @@
 import { 
   users, contacts, companies, deals, tasks, activities, lists, forms, formSubmissions, listContacts,
   socialAccounts, socialPosts, socialCampaigns, campaignPosts, quotations, quotationTemplates,
-  emailTemplates, emailCampaigns, emailCampaignRecipients, partners,
+  emailTemplates, emailCampaigns, emailCampaignRecipients, partners, invoices,
   type User, type InsertUser, 
   type Contact, type InsertContact,
   type Company, type InsertCompany,
@@ -18,7 +18,8 @@ import {
   type SocialCampaign, type InsertSocialCampaign,
   type EmailTemplate, type InsertEmailTemplate,
   type EmailCampaign, type InsertEmailCampaign,
-  type EmailCampaignRecipient, type InsertEmailCampaignRecipient
+  type EmailCampaignRecipient, type InsertEmailCampaignRecipient,
+  type Invoice, type InsertInvoice
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, sql } from "drizzle-orm";
@@ -709,4 +710,47 @@ export class DatabaseStorage implements IStorage {
   async createQuotationTemplate(template: InsertQuotationTemplate): Promise<QuotationTemplate> { throw new Error("Not implemented"); }
   async updateQuotationTemplate(id: number, template: InsertQuotationTemplate): Promise<QuotationTemplate | undefined> { return undefined; }
   async deleteQuotationTemplate(id: number): Promise<boolean> { return false; }
+
+  // Invoice methods
+  async getInvoices(): Promise<Invoice[]> {
+    const result = await db.select().from(invoices).orderBy(desc(invoices.invoiceDate));
+    return result;
+  }
+
+  async getInvoice(id: number): Promise<Invoice | undefined> {
+    const result = await db.select().from(invoices).where(eq(invoices.id, id));
+    return result[0];
+  }
+
+  async getInvoicesByDeal(dealId: number): Promise<Invoice[]> {
+    const result = await db.select().from(invoices).where(eq(invoices.dealId, dealId));
+    return result;
+  }
+
+  async getWonDeals(): Promise<Deal[]> {
+    const result = await db.select().from(deals).where(eq(deals.stage, 'Won')).orderBy(desc(deals.updatedAt));
+    return result;
+  }
+
+  async createInvoice(invoice: InsertInvoice): Promise<Invoice> {
+    const result = await db.insert(invoices).values({
+      ...invoice,
+      invoiceDate: new Date(invoice.invoiceDate),
+    }).returning();
+    return result[0];
+  }
+
+  async updateInvoice(id: number, invoice: InsertInvoice): Promise<Invoice | undefined> {
+    const result = await db.update(invoices).set({
+      ...invoice,
+      invoiceDate: new Date(invoice.invoiceDate),
+      updatedAt: new Date(),
+    }).where(eq(invoices.id, id)).returning();
+    return result[0];
+  }
+
+  async deleteInvoice(id: number): Promise<boolean> {
+    const result = await db.delete(invoices).where(eq(invoices.id, id));
+    return (result.rowCount ?? 0) > 0;
+  }
 }
