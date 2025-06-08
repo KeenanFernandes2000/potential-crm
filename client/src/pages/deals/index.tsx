@@ -135,6 +135,7 @@ const Deals = () => {
     try {
       await apiRequest("DELETE", `/api/deals/${dealId}`);
       queryClient.invalidateQueries({ queryKey: ["/api/deals"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/invoices/won-deals"] });
       toast({
         title: "Deal deleted",
         description: "The deal has been deleted successfully.",

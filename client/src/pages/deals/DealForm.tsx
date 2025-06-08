@@ -88,6 +88,7 @@ const DealForm = ({ deal, onClose }: DealFormProps) => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/deals"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/invoices/won-deals"] });
       toast({
         title: isEditing ? "Deal updated" : "Deal created",
         description: isEditing 

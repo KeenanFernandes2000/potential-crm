@@ -47,6 +47,7 @@ export function InvoiceForm({ isOpen, onClose, invoice, wonDeals }: InvoiceFormP
     mutationFn: (data: FormData) => apiRequest("POST", "/api/invoices", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/invoices/won-deals"] });
       toast({
         title: "Invoice created",
         description: "The invoice has been created successfully.",

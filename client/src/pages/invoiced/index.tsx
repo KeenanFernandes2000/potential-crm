@@ -45,7 +45,7 @@ export default function Invoiced() {
     queryKey: ["/api/invoices"],
   });
 
-  const { data: wonDeals } = useQuery<Deal[]>({
+  const { data: wonDeals, refetch: refetchWonDeals } = useQuery<Deal[]>({
     queryKey: ["/api/invoices/won-deals"],
   });
 
@@ -122,7 +122,10 @@ export default function Invoiced() {
             Manage invoices for your won deals
           </p>
         </div>
-        <Button onClick={() => setIsCreateModalOpen(true)}>
+        <Button onClick={() => {
+          refetchWonDeals(); // Refresh won deals to get the latest data
+          setIsCreateModalOpen(true);
+        }}>
           <Plus className="mr-2 h-4 w-4" />
           Create Invoice
         </Button>
