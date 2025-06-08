@@ -220,12 +220,12 @@ const Dashboard = () => {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
         <StatisticCard
-          title="Invoices Not Sent USD"
-          value={statsLoading ? "Loading..." : stats?.invoicesNotSent || "$0"}
-          change={0}
+          title="Invoices Under Processing"
+          value={statsLoading ? "Loading..." : stats?.invoicesUnderProcessing || "$0"}
+          change={stats?.invoicesUnderProcessingChange || 0}
           icon={DollarSign}
-          iconColor="text-red-500"
-          iconBgColor="bg-red-100"
+          iconColor="text-yellow-500"
+          iconBgColor="bg-yellow-100"
         />
         <StatisticCard
           title="Open Deals"
@@ -236,12 +236,12 @@ const Dashboard = () => {
           iconBgColor="bg-accent-100"
         />
         <StatisticCard
-          title="Invoices Under Processing USD"
-          value={statsLoading ? "Loading..." : stats?.invoicesUnderProcessing || "$0"}
-          change={0}
+          title="Invoices Not Sent"
+          value={statsLoading ? "Loading..." : stats?.invoicesNotSent || "$0"}
+          change={stats?.invoicesNotSentChange || 0}
           icon={DollarSign}
-          iconColor="text-yellow-500"
-          iconBgColor="bg-yellow-100"
+          iconColor="text-red-500"
+          iconBgColor="bg-red-100"
         />
         <StatisticCard
           title="Conversion Rate"

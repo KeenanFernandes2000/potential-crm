@@ -272,11 +272,41 @@ export class DatabaseStorage implements IStorage {
     const allActivities = await db.select().from(activities).orderBy(sql`created_at DESC`).limit(5);
     const allInvoices = await db.select().from(invoices);
     
+    // Get current date and calculate last month dates
+    const now = new Date();
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0);
+    
+    // Filter data for current month
+    const currentMonthInvoices = allInvoices.filter(invoice => 
+      invoice.createdAt && new Date(invoice.createdAt) >= currentMonthStart
+    );
+    const currentMonthDeals = allDeals.filter(deal => 
+      deal.createdAt && new Date(deal.createdAt) >= currentMonthStart
+    );
+    
+    // Filter data for last month
+    const lastMonthInvoices = allInvoices.filter(invoice => 
+      invoice.createdAt && 
+      new Date(invoice.createdAt) >= lastMonthStart && 
+      new Date(invoice.createdAt) <= lastMonthEnd
+    );
+    const lastMonthDeals = allDeals.filter(deal => 
+      deal.createdAt && 
+      new Date(deal.createdAt) >= lastMonthStart && 
+      new Date(deal.createdAt) <= lastMonthEnd
+    );
+    
     const totalLeads = allContacts.length;
     const totalDealsCount = allDeals.length;
     
     // Count open deals (not closed)
     const openDealsCount = allDeals.filter(deal => 
+      deal.stage && !['Closed Won', 'Won', 'Closed Lost', 'Lost'].includes(deal.stage)
+    ).length;
+    
+    const lastMonthOpenDealsCount = lastMonthDeals.filter(deal => 
       deal.stage && !['Closed Won', 'Won', 'Closed Lost', 'Lost'].includes(deal.stage)
     ).length;
     
@@ -286,15 +316,39 @@ export class DatabaseStorage implements IStorage {
     );
     const closedWonCount = closedWonDeals.length;
     
-    // Calculate invoice metrics
+    const lastMonthClosedWonCount = lastMonthDeals.filter(deal => 
+      deal.stage && ['Closed Won', 'Won'].includes(deal.stage)
+    ).length;
+    
+    // Calculate invoice metrics - current month
     const notSentInvoices = allInvoices.filter(invoice => invoice.status === 'Not sent');
     const underProcessingInvoices = allInvoices.filter(invoice => invoice.status === 'Under Processing');
     
     const notSentAmount = notSentInvoices.reduce((sum, invoice) => sum + (invoice.amount || 0), 0);
     const underProcessingAmount = underProcessingInvoices.reduce((sum, invoice) => sum + (invoice.amount || 0), 0);
     
+    // Calculate invoice metrics - last month
+    const lastMonthNotSentInvoices = lastMonthInvoices.filter(invoice => invoice.status === 'Not sent');
+    const lastMonthUnderProcessingInvoices = lastMonthInvoices.filter(invoice => invoice.status === 'Under Processing');
+    
+    const lastMonthNotSentAmount = lastMonthNotSentInvoices.reduce((sum, invoice) => sum + (invoice.amount || 0), 0);
+    const lastMonthUnderProcessingAmount = lastMonthUnderProcessingInvoices.reduce((sum, invoice) => sum + (invoice.amount || 0), 0);
+    
     // Calculate conversion rate (closed won / total deals)
     const conversionRate = totalDealsCount > 0 ? ((closedWonCount / totalDealsCount) * 100).toFixed(1) : "0";
+    const lastMonthTotalDealsCount = lastMonthDeals.length;
+    const lastMonthConversionRate = lastMonthTotalDealsCount > 0 ? ((lastMonthClosedWonCount / lastMonthTotalDealsCount) * 100) : 0;
+    
+    // Calculate percentage changes
+    const calculatePercentageChange = (current: number, previous: number): number => {
+      if (previous === 0) return current > 0 ? 100 : 0;
+      return Math.round(((current - previous) / previous) * 100);
+    };
+    
+    const openDealsChange = calculatePercentageChange(openDealsCount, lastMonthOpenDealsCount);
+    const conversionRateChange = calculatePercentageChange(parseFloat(conversionRate), lastMonthConversionRate);
+    const notSentAmountChange = calculatePercentageChange(notSentAmount, lastMonthNotSentAmount);
+    const underProcessingAmountChange = calculatePercentageChange(underProcessingAmount, lastMonthUnderProcessingAmount);
     
     // Format invoice amounts (convert from cents to dollars)
     const formattedNotSentAmount = new Intl.NumberFormat('en-US', {
@@ -406,9 +460,13 @@ export class DatabaseStorage implements IStorage {
 
     return {
       invoicesNotSent: formattedNotSentAmount,
+      invoicesNotSentChange: notSentAmountChange,
       openDeals: openDealsCount,
+      openDealsChange: openDealsChange,
       invoicesUnderProcessing: formattedUnderProcessingAmount,
+      invoicesUnderProcessingChange: underProcessingAmountChange,
       conversionRate: `${conversionRate}%`,
+      conversionRateChange: conversionRateChange,
       pipelineStages,
       recentActivities: allActivities,
       funnelBreakdown: {
