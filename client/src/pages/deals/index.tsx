@@ -68,10 +68,7 @@ const Deals = () => {
 
   const updateDealMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: Partial<Deal> }) => {
-      return apiRequest(`/api/deals/${id}`, {
-        method: "PATCH",
-        body: JSON.stringify(data),
-      });
+      return apiRequest("PATCH", `/api/deals/${id}`, data);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/deals"] });
