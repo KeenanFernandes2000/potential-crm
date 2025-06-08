@@ -1,23 +1,42 @@
 import { useParams, useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
-import { Deal, Company, Partner, Contact } from "@shared/schema";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Deal, Company, Partner, Contact, insertActivitySchema } from "@shared/schema";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ArrowLeft, Edit, DollarSign, Calendar, User, Building2, Users } from "lucide-react";
 import { format } from "date-fns";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useState } from "react";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+
+const activityFormSchema = insertActivitySchema.extend({
+  type: z.enum(["call", "email", "meeting", "note"]),
+});
+
+type ActivityFormData = z.infer<typeof activityFormSchema>;
 
 const DealDetail = () => {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
+  const [showActivityForm, setShowActivityForm] = useState(false);
+  const { toast } = useToast();
   
   const { data: deal, isLoading, error } = useQuery<Deal>({
     queryKey: [`/api/deals/${id}`],
     enabled: !!id,
   });
 
-  console.log("Deal Detail Debug:", { id, deal, isLoading, error });
+
 
   const { data: companies } = useQuery<Company[]>({
     queryKey: ["/api/companies"],
@@ -30,6 +49,51 @@ const DealDetail = () => {
   const { data: contacts } = useQuery<Contact[]>({
     queryKey: ["/api/contacts"],
   });
+
+  const form = useForm<ActivityFormData>({
+    resolver: zodResolver(activityFormSchema),
+    defaultValues: {
+      title: "",
+      type: "note",
+      description: "",
+      dealId: parseInt(id || "0"),
+      userId: 1, // Default to current user
+      companyId: deal?.companyId || null,
+      contactId: deal?.contactId || null,
+    },
+  });
+
+  const createActivityMutation = useMutation({
+    mutationFn: (data: ActivityFormData) => apiRequest("/api/activities", {
+      method: "POST",
+      body: data,
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/activities"] });
+      setShowActivityForm(false);
+      form.reset();
+      toast({
+        title: "Activity added",
+        description: "The activity has been successfully added to this deal.",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to add activity. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const onSubmitActivity = (data: ActivityFormData) => {
+    createActivityMutation.mutate({
+      ...data,
+      dealId: parseInt(id || "0"),
+      companyId: deal?.companyId || null,
+      contactId: deal?.contactId || null,
+    });
+  };
 
   if (isLoading) {
     return (
@@ -245,15 +309,11 @@ const DealDetail = () => {
               <CardTitle>Quick Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Button variant="outline" className="w-full justify-start">
-                <Calendar className="h-4 w-4 mr-2" />
-                Schedule Meeting
-              </Button>
-              <Button variant="outline" className="w-full justify-start">
-                <DollarSign className="h-4 w-4 mr-2" />
-                Create Quotation
-              </Button>
-              <Button variant="outline" className="w-full justify-start">
+              <Button 
+                variant="outline" 
+                className="w-full justify-start"
+                onClick={() => setShowActivityForm(true)}
+              >
                 <Edit className="h-4 w-4 mr-2" />
                 Add Activity
               </Button>
@@ -261,6 +321,93 @@ const DealDetail = () => {
           </Card>
         </div>
       </div>
+
+      {/* Add Activity Dialog */}
+      <Dialog open={showActivityForm} onOpenChange={setShowActivityForm}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Add Activity</DialogTitle>
+            <DialogDescription>
+              Record a new activity for this deal. This will help track your interactions and progress.
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmitActivity)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Activity Type</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select activity type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="call">Phone Call</SelectItem>
+                        <SelectItem value="email">Email</SelectItem>
+                        <SelectItem value="meeting">Meeting</SelectItem>
+                        <SelectItem value="note">Note</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="title"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Title</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter activity title" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Description</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Enter activity details..."
+                        className="min-h-[100px]"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <div className="flex justify-end space-x-2">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => setShowActivityForm(false)}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={createActivityMutation.isPending}
+                >
+                  {createActivityMutation.isPending ? "Adding..." : "Add Activity"}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
