@@ -27,6 +27,9 @@ const Contacts = () => {
   const [isBulkImportOpen, setIsBulkImportOpen] = useState(false);
   const [csvData, setCsvData] = useState<string[][]>([]);
   const [columnMapping, setColumnMapping] = useState<Record<string, string>>({});
+  const [isLogActivityOpen, setIsLogActivityOpen] = useState(false);
+  const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
 
   const { data: contacts, isLoading } = useQuery<Contact[]>({
     queryKey: ["/api/contacts"],
@@ -34,6 +37,53 @@ const Contacts = () => {
 
   const { data: companies } = useQuery({
     queryKey: ["/api/companies"],
+  });
+
+  // Create activity mutation
+  const createActivityMutation = useMutation({
+    mutationFn: async (activityData: any) => {
+      const response = await apiRequest("POST", "/api/activities", activityData);
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/activities"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/dashboard/stats"] });
+      setIsLogActivityOpen(false);
+      toast({
+        title: "Activity logged",
+        description: "The activity has been logged successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to log activity. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Create task mutation
+  const createTaskMutation = useMutation({
+    mutationFn: async (taskData: any) => {
+      const response = await apiRequest("POST", "/api/tasks", taskData);
+      return response;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/tasks"] });
+      setIsCreateTaskOpen(false);
+      toast({
+        title: "Task created",
+        description: "The task has been created successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to create task. Please try again.",
+        variant: "destructive",
+      });
+    },
   });
 
   // Bulk import mutation
@@ -192,6 +242,16 @@ const Contacts = () => {
     setIsCreateModalOpen(true);
   };
 
+  const handleLogActivity = (contact: Contact) => {
+    setSelectedContact(contact);
+    setIsLogActivityOpen(true);
+  };
+
+  const handleCreateTask = (contact: Contact) => {
+    setSelectedContact(contact);
+    setIsCreateTaskOpen(true);
+  };
+
   const closeModal = () => {
     setIsCreateModalOpen(false);
     setEditingContact(null);
@@ -305,8 +365,8 @@ const Contacts = () => {
               <DropdownMenuItem>View details</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem>Add to list</DropdownMenuItem>
-              <DropdownMenuItem>Create task</DropdownMenuItem>
-              <DropdownMenuItem>Log activity</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleCreateTask(contact)}>Create task</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleLogActivity(contact)}>Log activity</DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem className="text-red-600">
                 Delete
