@@ -12,10 +12,12 @@ const DealDetail = () => {
   const { id } = useParams<{ id: string }>();
   const [, setLocation] = useLocation();
   
-  const { data: deal, isLoading } = useQuery<Deal>({
-    queryKey: ["/api/deals", id],
+  const { data: deal, isLoading, error } = useQuery<Deal>({
+    queryKey: [`/api/deals/${id}`],
     enabled: !!id,
   });
+
+  console.log("Deal Detail Debug:", { id, deal, isLoading, error });
 
   const { data: companies } = useQuery<Company[]>({
     queryKey: ["/api/companies"],
