@@ -16,7 +16,8 @@ import {
   FileSpreadsheet,
   UserCheck,
   Handshake,
-  Receipt
+  Receipt,
+  Mailbox
 } from "lucide-react";
 
 interface SidebarProps {
@@ -83,6 +84,11 @@ const Sidebar = ({ isOpen, closeSidebar }: SidebarProps) => {
       path: "/email", 
       name: "Email",
       icon: <Mail className="h-5 w-5 mr-3" />
+    },
+    { 
+      path: "/outlook", 
+      name: "Outlook",
+      icon: <Mailbox className="h-5 w-5 mr-3" />
     },
     { 
       path: "/social", 

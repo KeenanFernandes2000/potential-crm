@@ -18,6 +18,9 @@ import FormEmbed from "@/pages/forms/embed/[id]";
 import FormSubmissions from "@/pages/forms/submissions/[id]";
 import Calendar from "@/pages/calendar";
 import Email from "@/pages/email";
+import Outlook from "@/pages/outlook";
+import OutlookCallback from "@/pages/outlook/callback";
+import OutlookMail from "@/pages/outlook/mail";
 import SocialMedia from "@/pages/social";
 import Reports from "@/pages/reports";
 import Settings from "@/pages/settings";
@@ -59,6 +62,9 @@ function ProtectedRoutes() {
       <Route path="/forms/submissions/:id" component={FormSubmissions} />
       <Route path="/calendar" component={Calendar} />
       <Route path="/email" component={Email} />
+      <Route path="/outlook" component={Outlook} />
+      <Route path="/outlook/callback" component={OutlookCallback} />
+      <Route path="/outlook/mail" component={OutlookMail} />
       <Route path="/social" component={SocialMedia} />
       <Route path="/reports" component={Reports} />
       <Route path="/settings" component={Settings} />
